@@ -1,0 +1,51 @@
+{
+  "name": "shipshape",
+  "version": "1.0.0",
+  "description": "An inventory management application for laboratory staff and head of program study of Maranatha Christian University.",
+  "keywords": [
+    "express",
+    "pug",
+    "management"
+  ],
+  "homepage": "https://github.com/motoric-o/ShipShape#readme",
+  "bugs": {
+    "url": "https://github.com/motoric-o/ShipShape/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/motoric-o/ShipShape.git"
+  },
+  "license": "ISC",
+  "author": "Rico Dharmawan",
+  "contributors": [
+    "Jonathan Valent Waluya",
+    "Marco Octavian"
+  ],
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "@quixo3/prisma-session-store": "^3.1.19",
+    "bcryptjs": "^3.0.3",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.7",
+    "csrf-csrf": "^4.0.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "method-override": "^3.0.0",
+    "pug": "^3.0.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.0",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.8.0",
+    "tailwindcss": "^4.3.0"
+  }
+}
