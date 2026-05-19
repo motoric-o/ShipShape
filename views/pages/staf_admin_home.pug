@@ -1,0 +1,62 @@
+extends ../layouts/main.pug
+
+block sidebar
+  include ../components/sidebars/staf_admin.pug
+
+block content
+  div(class="max-w-7xl mx-auto")
+    //- Hero Header Section
+    div(class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4")
+      div
+        div(class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-sm mb-4")
+          span(class="w-2 h-2 rounded-full bg-green-500 animate-pulse")
+          span(class="text-xs font-bold tracking-wide text-slate-600 uppercase") Logistics & Assets
+        h2(class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900") Good morning, Staf Administrasi
+        p(class="text-slate-500 mt-2 text-lg font-medium") Track incoming items and manage database records.
+      div(class="flex items-center gap-3")
+        button(class="px-4 py-2.5 bg-slate-900 rounded-xl text-sm font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-green-700 hover:shadow-green-700/20 transition-all duration-300 hover:-translate-y-0.5") Barcode Generator
+    
+    //- Fluid Metric Cards Grid
+    div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6")
+      
+      //- Card 1
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-green-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-green-50 group-hover:border-green-100 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4")
+          span(class="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-bold text-green-700 border border-green-200/60") This Week
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Arrivals Processing
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 7
+            span(class="text-sm font-medium text-slate-400") shipments
+            
+      //- Card 2
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-orange-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-orange-50 group-hover:border-orange-100 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-orange-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4")
+          span(class="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 border border-orange-200/60") Action Needed
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Ready for QR Labels
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 24
+            span(class="text-sm font-medium text-slate-400") unlabelled
+            
+      //- Card 3
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-slate-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-slate-100 group-hover:border-slate-200 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-slate-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10")
+          span(class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600 border border-slate-200") Secure
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Active Database Records
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 4,892
+            span(class="text-sm font-medium text-slate-400") items

@@ -1,0 +1,62 @@
+extends ../layouts/main.pug
+
+block sidebar
+  include ../components/sidebars/kepala_lab.pug
+
+block content
+  div(class="max-w-7xl mx-auto")
+    //- Hero Header Section
+    div(class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4")
+      div
+        div(class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-sm mb-4")
+          span(class="w-2 h-2 rounded-full bg-orange-500 animate-pulse")
+          span(class="text-xs font-bold tracking-wide text-slate-600 uppercase") Drafts & Budget
+        h2(class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900") Good morning, Kepala Lab
+        p(class="text-slate-500 mt-2 text-lg font-medium") Here is the status of your procurement drafts.
+      div(class="flex items-center gap-3")
+        button(class="px-4 py-2.5 bg-slate-900 rounded-xl text-sm font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-green-700 hover:shadow-green-700/20 transition-all duration-300 hover:-translate-y-0.5") + Create Draft
+    
+    //- Fluid Metric Cards Grid
+    div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6")
+      
+      //- Card 1
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-orange-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-orange-50 group-hover:border-orange-100 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-orange-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z")
+          span(class="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 border border-orange-200/60") Needs Action
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Drafts Processing
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 5
+            span(class="text-sm font-medium text-slate-400") drafts
+            
+      //- Card 2
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-slate-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-slate-100 group-hover:border-slate-200 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-slate-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z")
+          span(class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600 border border-slate-200") Archived
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Finalized Proposals
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 32
+            span(class="text-sm font-medium text-slate-400") proposals
+            
+      //- Card 3
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-green-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-green-50 group-hover:border-green-100 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
+          span(class="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-bold text-green-700 border border-green-200/60") 60% Used
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Capital Allocation
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") $45.2k
+            span(class="text-sm font-medium text-slate-400") projected
