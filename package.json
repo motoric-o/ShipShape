@@ -29,6 +29,7 @@
     "dev": "nodemon app.js"
   },
   "dependencies": {
+    "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@quixo3/prisma-session-store": "^3.1.19",
     "bcryptjs": "^3.0.3",
@@ -38,6 +39,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "mariadb": "^3.5.2",
     "method-override": "^3.0.0",
     "pug": "^3.0.4",
     "zod": "^4.4.3"
@@ -47,5 +49,8 @@
     "nodemon": "^3.1.14",
     "prisma": "^7.8.0",
     "tailwindcss": "^4.3.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
