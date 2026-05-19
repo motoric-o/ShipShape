@@ -1,0 +1,17 @@
+extends ../../layouts/main.pug
+include ../../components/userForm.pug
+
+block content
+  div(class="max-w-4xl mx-auto space-y-6")
+    div(class="flex items-center gap-3")
+      a(href="/users" class="text-slate-400 hover:text-slate-600 transition-colors")
+        svg(xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+          path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18")
+      div
+        h1(class="text-2xl font-bold text-slate-900")= title || (user && user.id ? 'Edit Pengguna' : 'Tambah Pengguna Baru')
+        p(class="text-sm text-slate-500 mt-1") Masukkan detail informasi pengguna di bawah ini.
+    
+    - const action = user && user.id ? `/users/${user.id}?_method=PUT` : '/users'
+    - const method = user && user.id ? 'PUT' : 'POST'
+    
+    +userForm(user || {}, action, method)

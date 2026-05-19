@@ -5,6 +5,7 @@ const methodOverride = require('method-override');
 const path = require('path');
 const prisma = require('./src/config/db');
 const routes = require('./src/routes');
+const webRoutes = require('./src/routes/web.routes');
 
 require('dotenv').config();
 
@@ -53,6 +54,7 @@ app.get('/kaprodi', (req, res) => {
   res.render('pages/kaprodi_home');
 });
 
+app.use('/', webRoutes);
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not Found' });
 });

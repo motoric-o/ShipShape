@@ -1,0 +1,26 @@
+extends ../layouts/main.pug
+
+block content
+  div(class="min-h-[80vh] flex items-center justify-center")
+    div(class="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-200 p-8")
+      div(class="text-center mb-8")
+        h1(class="text-2xl font-bold text-slate-900") Welcome Back
+        p(class="text-sm text-slate-500 mt-2") Enter your credentials to access the system
+      
+      if error
+        div(class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-center")
+          p(class="text-sm font-medium text-red-600")= error
+      
+      form(action="/login" method="POST" class="space-y-5")
+        div(class="space-y-2")
+          label(for="email" class="text-sm font-medium text-slate-700") Email / Username
+          input#email(type="text" name="email" placeholder="m.octavian@example.com" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors" required)
+        
+        div(class="space-y-2")
+          div(class="flex items-center justify-between")
+            label(for="password" class="text-sm font-medium text-slate-700") Password
+            a(href="#" class="text-xs font-medium text-green-600 hover:text-green-700") Forgot password?
+          input#password(type="password" name="password" placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors" required)
+        
+        div(class="pt-2")
+          button(type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition-colors shadow-sm") Sign In
