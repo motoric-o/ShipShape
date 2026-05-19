@@ -4,8 +4,7 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -17,6 +16,16 @@ model Session {
   sid       String   @unique
   data      String   @db.Text
   expiresAt DateTime
+
+  @@map("sessions")
+}
+
+enum Role {
+  ADMIN
+  KAPRODI
+  KALAB
+  STAF_ADMIN
+  STAF_LAB
 }
 
 model Users {
@@ -24,15 +33,172 @@ model Users {
   name      String
   email     String   @unique
   password  String
-  role      Role     @default(STAFF)
+  role      Role     @default(STAF_LAB)
+  
+  // Relations
+  createdDrafts  ProcurementDraft[] @relation("DraftCreator")
+  reviewedDrafts ProcurementDraft[] @relation("DraftReviewer")
+  maintenances   MaintenanceLog[]   @relation("MaintenancePerformer")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("users")
 }
 
-enum Role {
-  ADMIN
-  HEADSTUDYPROGRAM
-  HEADSTAFF
-  ADMINISTRATIONSTAFF
-  STAFF
+model Room {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?     @db.Text
+  
+  inventories Inventory[]
+  bhps        BHP[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("rooms")
+}
+
+enum Condition {
+  GOOD
+  MAINTENANCE
+  BROKEN
+  DISPOSED
+}
+
+model Inventory {
+  id              Int       @id @default(autoincrement())
+  name            String
+  labelNumber     String?   @unique
+  qrCodePhotoPath String?
+  condition       Condition @default(GOOD)
+  
+  roomId          Int
+  room            Room      @relation(fields: [roomId], references: [id])
+  
+  // Replaced items in procurement
+  replacements    ProcurementItem[] @relation("ReplacedInventory")
+  
+  maintenanceLogs MaintenanceLog[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("inventories")
+}
+
+model BHP {
+  id          Int      @id @default(autoincrement())
+  name        String
+  stock       Int      @default(0)
+  unit        String
+  
+  roomId      Int
+  room        Room     @relation(fields: [roomId], references: [id])
+  
+  maintenanceUsages MaintenanceBHPUsage[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("bhps")
+}
+
+enum DraftStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  LOCKED
+}
+
+model ProcurementDraft {
+  id          Int       @id @default(autoincrement())
+  title       String
+  year        Int
+  status      DraftStatus @default(DRAFT)
+  
+  createdById Int
+  createdBy   Users     @relation("DraftCreator", fields: [createdById], references: [id])
+  
+  reviewedById Int?
+  reviewedBy   Users?   @relation("DraftReviewer", fields: [reviewedById], references: [id])
+
+  items       ProcurementItem[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("procurement_drafts")
+}
+
+enum ItemType {
+  INVENTORY
+  BHP
+}
+
+enum ItemStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProcurementItem {
+  id                  Int               @id @default(autoincrement())
+  draftId             Int
+  draft               ProcurementDraft  @relation(fields: [draftId], references: [id])
+  
+  type                ItemType
+  name                String
+  price               Float
+  quantity            Int
+  link                String?           @db.Text
+  
+  // Optional, if replacing an existing inventory item
+  replacedInventoryId Int?
+  replacedInventory   Inventory?        @relation("ReplacedInventory", fields: [replacedInventoryId], references: [id])
+
+  status              ItemStatus        @default(PENDING)
+  receiveDate         DateTime?
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("procurement_items")
+}
+
+model MaintenanceLog {
+  id             Int       @id @default(autoincrement())
+  inventoryId    Int
+  inventory      Inventory @relation(fields: [inventoryId], references: [id])
+  
+  maintenanceDate DateTime @default(now())
+  description    String    @db.Text
+  conditionAfter Condition
+  
+  performedById  Int
+  performedBy    Users     @relation("MaintenancePerformer", fields: [performedById], references: [id])
+
+  bhpUsages      MaintenanceBHPUsage[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("maintenance_logs")
+}
+
+model MaintenanceBHPUsage {
+  id               Int            @id @default(autoincrement())
+  maintenanceLogId Int
+  maintenanceLog   MaintenanceLog @relation(fields: [maintenanceLogId], references: [id])
+  
+  bhpId            Int
+  bhp              BHP            @relation(fields: [bhpId], references: [id])
+  
+  quantity         Int
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("maintenance_bhp_usages")
 }
