@@ -46,15 +46,15 @@ router.get('/kalab', requireAuth, requireRole(['KALAB']), DashboardController.ka
 router.get('/staf-lab', requireAuth, requireRole(['STAF_LAB']), DashboardController.stafLab);
 
 // --- User Routes ---
-router.get('/users', requireAuth, requireRole(['ADMIN', 'KAPRODI', 'STAF_ADMIN']), UserController.index);
-router.get('/users/new', requireAuth, requireRole(['ADMIN', 'KAPRODI', 'STAF_ADMIN']), UserController.create);
-router.post('/users', requireAuth, requireRole(['ADMIN', 'KAPRODI', 'STAF_ADMIN']), UserController.store);
-router.get('/users/:id/edit', requireAuth, requireRole(['ADMIN', 'KAPRODI', 'STAF_ADMIN']), UserController.edit);
-router.put('/users/:id', requireAuth, requireRole(['ADMIN', 'KAPRODI', 'STAF_ADMIN']), UserController.update);
+router.get('/users', requireAuth, requireRole(['ADMIN']), UserController.index);
+router.get('/users/new', requireAuth, requireRole(['ADMIN']), UserController.create);
+router.post('/users', requireAuth, requireRole(['ADMIN']), UserController.store);
+router.get('/users/:id/edit', requireAuth, requireRole(['ADMIN']), UserController.edit);
+router.put('/users/:id', requireAuth, requireRole(['ADMIN']), UserController.update);
 router.delete('/users/:id', requireAuth, requireRole(['ADMIN']), UserController.destroy);
 
 // --- Room Routes ---
-router.get('/rooms', requireAuth, RoomController.index);
+router.get('/rooms', requireAuth, requireRole(['ADMIN']), RoomController.index);
 router.get('/rooms/new', requireAuth, requireRole(['ADMIN']), RoomController.create);
 router.post('/rooms', requireAuth, requireRole(['ADMIN']), RoomController.store);
 router.get('/rooms/:id/edit', requireAuth, requireRole(['ADMIN']), RoomController.edit);

@@ -518,6 +518,9 @@
   .animate-pulse {
     animation: var(--animate-pulse);
   }
+  .cursor-not-allowed {
+    cursor: not-allowed;
+  }
   .cursor-pointer {
     cursor: pointer;
   }
@@ -699,6 +702,9 @@
     @supports (color: color-mix(in lab, red, red)) {
       border-color: color-mix(in oklab, var(--color-green-200) 60%, transparent);
     }
+  }
+  .border-green-600 {
+    border-color: var(--color-green-600);
   }
   .border-orange-200 {
     border-color: var(--color-orange-200);

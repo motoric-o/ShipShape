@@ -1,4 +1,4 @@
-extends ../../layouts/main.pug
+extends ../../layouts/crud_form.pug
 include ../../components/forms/input.pug
 include ../../components/forms/select.pug
 include ../../components/forms/toggle.pug
@@ -15,72 +15,62 @@ block sidebar
   else if sessionUser && sessionUser.userRole === 'STAF_LAB'
     include ../../components/sidebars/staf_lab.pug
 
-block content
-  div(class="max-w-4xl mx-auto space-y-6")
-    div(class="flex items-center gap-3")
-      a(href="/users" class="text-slate-400 hover:text-slate-600 transition-colors")
-        svg(xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor")
-          path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18")
-      div
-        h1(class="text-2xl font-bold text-slate-900")= title || (user && user.id ? 'Edit Pengguna' : 'Tambah Pengguna Baru')
-        p(class="text-sm text-slate-500 mt-1") Masukkan detail informasi pengguna di bawah ini.
-    
-    - const actionUrl = user && user.id ? `/users/${user.id}?_method=PUT` : '/users'
-    - const method = user && user.id ? 'PUT' : 'POST'
-    - 
-      let defaultRoleId = null;
-      if (roles) {
-        if (user && user.roleId) {
-          defaultRoleId = user.roleId;
-        } else {
-          const stafLabRole = roles.find(r => r.name === 'STAF_LAB');
-          if (stafLabRole) defaultRoleId = stafLabRole.id;
-        }
-      }
-      
-      const roleOptions = (roles || []).map(r => ({ value: r.id, label: r.description }));
-    
-    form(action=actionUrl method="POST" class="space-y-6 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-200" onsubmit="return validatePassword()")
-      if method === "PUT"
-        input(type="hidden" name="_method" value="PUT")
-      
-      div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
-        +inputField("name", "name", "Full Name", user ? user.name : '', "text", "John Doe", true)
-        
-        +inputField("email", "email", "Email Address", user ? user.email : '', "email", "john@example.com", true)
-        
-        +selectField("roleId", "roleId", "Role", roleOptions, defaultRoleId, true)
-        
-        +toggleSwitch("isActive", "Akun Aktif (Active Status)", user ? user.isActive !== false : true)
-        
-        div(class="space-y-2")
-          label(for="password" class="text-sm font-medium text-slate-700") Password
-          if user && user.id
-            input#password(type="password" name="password" placeholder="Leave blank to keep current" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors")
-          else
-            input#password(type="password" name="password" placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors" required)
-            
-        div(class="space-y-2")
-          label(for="passwordConfirm" class="text-sm font-medium text-slate-700") Konfirmasi Password
-          input#passwordConfirm(type="password" name="passwordConfirm" placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors")
-          p#passwordError(class="text-red-500 text-sm hidden mt-1") Password tidak cocok
-            
-      div(class="flex items-center justify-end space-x-3 pt-4 mt-6 border-t border-slate-100")
-        a(href="/users" class="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors") Cancel
-        button(type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm") Save User
+block crud_form_title
+  = title || (user && user.id ? 'Edit Pengguna' : 'Tambah Pengguna Baru')
 
-    script.
-      function validatePassword() {
-        const pwd = document.getElementById('password').value;
-        const confirm = document.getElementById('passwordConfirm').value;
-        const err = document.getElementById('passwordError');
-        
-        if (pwd || confirm) {
-          if (pwd !== confirm) {
-            err.classList.remove('hidden');
-            return false;
-          }
-        }
-        err.classList.add('hidden');
-        return true;
+block crud_form_subtitle
+  | Masukkan detail informasi pengguna di bawah ini.
+
+block crud_form_fields
+  - 
+    let defaultRoleId = null;
+    if (roles) {
+      if (user && user.roleId) {
+        defaultRoleId = user.roleId;
+      } else {
+        const stafLabRole = roles.find(r => r.name === 'STAF_LAB');
+        if (stafLabRole) defaultRoleId = stafLabRole.id;
       }
+    }
+    
+    const roleOptions = (roles || []).map(r => ({ value: r.id, label: r.description }));
+
+  div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
+    +inputField("name", "name", "Full Name", user ? user.name : '', "text", "John Doe", true)
+    
+    +inputField("email", "email", "Email Address", user ? user.email : '', "email", "john@example.com", true)
+    
+    +selectField("roleId", "roleId", "Role", roleOptions, defaultRoleId, true)
+    
+    +toggleSwitch("isActive", "Akun Aktif (Active Status)", user ? user.isActive !== false : true)
+    
+    div(class="space-y-2")
+      label(for="password" class="text-sm font-medium text-slate-700") Password
+      if user && user.id
+        input#password(type="password" name="password" placeholder="Leave blank to keep current" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors")
+      else
+        input#password(type="password" name="password" placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors" required)
+        
+    div(class="space-y-2")
+      label(for="passwordConfirm" class="text-sm font-medium text-slate-700") Konfirmasi Password
+      input#passwordConfirm(type="password" name="passwordConfirm" placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors")
+      p#passwordError(class="text-red-500 text-sm hidden mt-1") Password tidak cocok
+
+  script.
+    function validatePassword() {
+      const pwd = document.getElementById('password').value;
+      const confirm = document.getElementById('passwordConfirm').value;
+      const err = document.getElementById('passwordError');
+      
+      if (pwd || confirm) {
+        if (pwd !== confirm) {
+          err.classList.remove('hidden');
+          return false;
+        }
+      }
+      err.classList.add('hidden');
+      return true;
+    }
+
+block crud_form_submit_label
+  | Save User
