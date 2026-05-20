@@ -1,0 +1,11 @@
+mixin selectField(id, name, label, options, selectedValue = null, required = false, extraClasses = '')
+  div(class="space-y-2")
+    label(for=id class="text-sm font-medium text-slate-700")= label
+    select(
+      id=id
+      name=name
+      required=required
+      class=`w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors bg-white ${extraClasses}`
+    )
+      each opt in options
+        option(value=opt.value selected=(String(selectedValue) === String(opt.value)))= opt.label

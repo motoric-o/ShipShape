@@ -1,59 +1,73 @@
-const RoomModel = require('../models/room.model');
+const prisma = require('../config/db');
 
 const RoomController = {
-  async getAllRooms(req, res, next) {
+  async index(req, res, next) {
     try {
-      const rooms = await RoomModel.findAll();
-      return res.json({ rooms });
-    } catch (error) {
-      next(error);
+      const rooms = await prisma.room.findMany({
+        include: {
+          _count: {
+            select: { inventories: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.render('pages/rooms/index', { rooms, sessionUser: req.session });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Error fetching rooms');
     }
   },
 
-  async getRoomDetails(req, res, next) {
-    try {
-      const { id } = req.params;
-      const room = await RoomModel.findById(id, { includeInventories: true, includeBHPs: true });
-      if (!room) {
-        return res.status(404).json({ error: 'Room not found' });
-      }
-      return res.json({ room });
-    } catch (error) {
-      next(error);
-    }
+  create(req, res, next) {
+    res.render('pages/rooms/form', { sessionUser: req.session });
   },
 
-  async createRoom(req, res, next) {
+  async store(req, res, next) {
     try {
       const { name, description } = req.body;
-      if (!name) {
-        return res.status(400).json({ error: 'Room name is required' });
-      }
-      const newRoom = await RoomModel.create({ name, description });
-      return res.status(201).json({ message: 'Room created successfully', room: newRoom });
+      await prisma.room.create({
+        data: { name, description }
+      });
+      res.redirect('/rooms');
     } catch (error) {
-      next(error);
+      console.error('Error creating room:', error);
+      res.redirect('/rooms/new?error=Failed to create room');
     }
   },
 
-  async updateRoom(req, res, next) {
+  async edit(req, res, next) {
+    try {
+      const room = await prisma.room.findUnique({ where: { id: parseInt(req.params.id) } });
+      if (!room) return res.redirect('/rooms');
+      res.render('pages/rooms/form', { sessionUser: req.session, room });
+    } catch (error) {
+      console.error(error);
+      res.redirect('/rooms');
+    }
+  },
+
+  async update(req, res, next) {
     try {
       const { id } = req.params;
       const { name, description } = req.body;
-      const updatedRoom = await RoomModel.update(id, { name, description });
-      return res.json({ message: 'Room updated successfully', room: updatedRoom });
+      await prisma.room.update({
+        where: { id: parseInt(id) },
+        data: { name, description }
+      });
+      res.redirect('/rooms');
     } catch (error) {
-      next(error);
+      console.error('Error updating room:', error);
+      res.redirect(`/rooms/${req.params.id}/edit?error=Failed to update room`);
     }
   },
 
-  async deleteRoom(req, res, next) {
+  async destroy(req, res, next) {
     try {
-      const { id } = req.params;
-      await RoomModel.delete(id);
-      return res.json({ message: 'Room deleted successfully' });
+      await prisma.room.delete({ where: { id: parseInt(req.params.id) } });
+      res.redirect('/rooms');
     } catch (error) {
-      next(error);
+      console.error(error);
+      res.redirect('/rooms');
     }
   }
 };

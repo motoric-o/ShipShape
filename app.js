@@ -5,7 +5,6 @@ const methodOverride = require('method-override');
 const path = require('path');
 const prisma = require('./src/config/db');
 const routes = require('./src/routes');
-const webRoutes = require('./src/routes/web.routes');
 
 require('dotenv').config();
 
@@ -36,25 +35,7 @@ app.use(
   })
 );
 
-app.use('/api', routes);
-
-app.get('/status', (req, res) => {
-  res.json({ status: 'OK', message: 'ShipShape API is running' });
-});
-
-app.get('/admin', (req, res) => {
-  res.render('pages/admin_home');
-});
-
-app.get('/staf-admin', (req, res) => {
-  res.render('pages/staf_admin_home');
-});
-
-app.get('/kaprodi', (req, res) => {
-  res.render('pages/kaprodi_home');
-});
-
-app.use('/', webRoutes);
+app.use('/', routes);
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not Found' });
 });

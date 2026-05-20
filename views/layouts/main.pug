@@ -3,7 +3,7 @@ html(lang="en")
   head
     meta(charset="UTF-8")
     meta(name="viewport" content="width=device-width, initial-scale=1.0")
-    title LabMaster - Asset & BHP Management
+    title ShipShape - Asset & BHP Management
     link(rel="stylesheet" href="/css/tailwind.css")
     script.
       function toggleSidebar() {
@@ -16,7 +16,7 @@ html(lang="en")
           sidebar.classList.add('sidebar-closed');
         }
       }
-  body(class="bg-slate-50/50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-green-100 selection:text-green-900")
+  body(class="bg-slate-50/50 text-slate-800 h-screen flex flex-col antialiased overflow-hidden selection:bg-green-100 selection:text-green-900")
     include ../components/header.pug
     
     div(class="flex flex-1 overflow-hidden relative")
@@ -25,6 +25,7 @@ html(lang="en")
         block sidebar
       
       //- Main Content Area
-      main(class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 w-full")
-        block content
+      main(class="flex-1 flex flex-col overflow-y-auto p-4 md:p-8 lg:p-10 w-full")
+        div(class="flex-grow")
+          block content
         include ../components/footer.pug

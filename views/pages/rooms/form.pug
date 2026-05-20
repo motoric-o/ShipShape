@@ -1,5 +1,18 @@
 extends ../../layouts/main.pug
-include ../../components/roomForm.pug
+include ../../components/forms/input.pug
+include ../../components/forms/textarea.pug
+
+block sidebar
+  if sessionUser && sessionUser.userRole === 'ADMIN'
+    include ../../components/sidebars/admin.pug
+  else if sessionUser && sessionUser.userRole === 'KAPRODI'
+    include ../../components/sidebars/kaprodi.pug
+  else if sessionUser && sessionUser.userRole === 'KALAB'
+    include ../../components/sidebars/kepala_lab.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_ADMIN'
+    include ../../components/sidebars/staf_admin.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_LAB'
+    include ../../components/sidebars/staf_lab.pug
 
 block content
   div(class="max-w-4xl mx-auto space-y-6")
@@ -11,7 +24,18 @@ block content
         h1(class="text-2xl font-bold text-slate-900")= title || (room && room.id ? 'Edit Ruangan' : 'Tambah Ruangan Baru')
         p(class="text-sm text-slate-500 mt-1") Masukkan detail informasi ruangan di bawah ini.
     
-    - const action = room && room.id ? `/rooms/${room.id}?_method=PUT` : '/rooms'
+    - const actionUrl = room && room.id ? `/rooms/${room.id}?_method=PUT` : '/rooms'
     - const method = room && room.id ? 'PUT' : 'POST'
     
-    +roomForm(room || {}, action, method)
+    form(action=actionUrl method="POST" class="space-y-6 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-200")
+      if method === "PUT"
+        input(type="hidden" name="_method" value="PUT")
+      
+      div(class="space-y-4")
+        +inputField("name", "name", "Nama Ruangan", room ? room.name : '', "text", "Lab Komputer 1", true)
+        
+        +textareaField("description", "description", "Deskripsi (Opsional)", room ? room.description : '', "Deskripsi atau fungsi ruangan ini...", 4)
+            
+      div(class="flex items-center justify-end space-x-3 pt-4 mt-6 border-t border-slate-100")
+        a(href="/rooms" class="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors") Batal
+        button(type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm") Simpan Ruangan

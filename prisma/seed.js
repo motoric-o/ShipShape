@@ -36,10 +36,31 @@ async function main() {
   await prisma.inventory.deleteMany({});
   await prisma.room.deleteMany({});
   await prisma.users.deleteMany({});
+  await prisma.role.deleteMany({});
   await prisma.session.deleteMany({});
   console.log('Database cleaned.');
 
-  // 2. Seed Users
+  // Reset auto-increment counters
+  console.log('Resetting auto-increment counters...');
+  await prisma.$executeRawUnsafe(`ALTER TABLE maintenance_bhp_usages AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE maintenance_logs AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE procurement_items AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE procurement_drafts AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE bhps AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE inventories AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE rooms AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE users AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE roles AUTO_INCREMENT = 1;`);
+
+  // 2. Seed Roles
+  console.log('Seeding Roles...');
+  const roleAdmin = await prisma.role.create({ data: { name: 'ADMIN', description: 'Administrator' } });
+  const roleKaprodi = await prisma.role.create({ data: { name: 'KAPRODI', description: 'Ketua Program Studi' } });
+  const roleKalab = await prisma.role.create({ data: { name: 'KALAB', description: 'Kepala Laboratorium' } });
+  const roleStafAdmin = await prisma.role.create({ data: { name: 'STAF_ADMIN', description: 'Staf Administrasi' } });
+  const roleStafLab = await prisma.role.create({ data: { name: 'STAF_LAB', description: 'Staf Laboratorium' } });
+
+  // 3. Seed Users
   console.log('Seeding Users...');
   const hashedPassword = bcrypt.hashSync('password123', 10);
 
@@ -48,25 +69,28 @@ async function main() {
       name: 'Super Admin',
       email: 'admin@shipshape.com',
       password: hashedPassword,
-      role: 'ADMIN',
+      roleId: roleAdmin.id,
+      isActive: true,
     },
   });
 
   const kaprodiUser = await prisma.users.create({
     data: {
-      name: 'Dr. Jane Kaprodi',
+      name: 'Laura',
       email: 'kaprodi@shipshape.com',
       password: hashedPassword,
-      role: 'KAPRODI',
+      roleId: roleKaprodi.id,
+      isActive: true,
     },
   });
 
   const kalabUser = await prisma.users.create({
     data: {
-      name: 'John Kalab, M.T.',
+      name: 'Lennon, John, M.T.',
       email: 'kalab@shipshape.com',
       password: hashedPassword,
-      role: 'KALAB',
+      roleId: roleKalab.id,
+      isActive: true,
     },
   });
 
@@ -75,7 +99,8 @@ async function main() {
       name: 'Alice Staf Admin',
       email: 'staf_admin@shipshape.com',
       password: hashedPassword,
-      role: 'STAF_ADMIN',
+      roleId: roleStafAdmin.id,
+      isActive: true,
     },
   });
 
@@ -84,13 +109,14 @@ async function main() {
       name: 'Bob Staf Lab',
       email: 'staf_lab@shipshape.com',
       password: hashedPassword,
-      role: 'STAF_LAB',
+      roleId: roleStafLab.id,
+      isActive: true,
     },
   });
 
   console.log(`Seeded 5 users: ${adminUser.email}, ${kaprodiUser.email}, ${kalabUser.email}, ${stafAdminUser.email}, ${stafLabUser.email}`);
 
-  // 3. Seed Rooms
+  // 4. Seed Rooms
   console.log('Seeding Rooms...');
   const netLab = await prisma.room.create({
     data: {
@@ -115,7 +141,7 @@ async function main() {
 
   console.log(`Seeded 3 rooms: ${netLab.name}, ${hwLab.name}, ${serverRoom.name}`);
 
-  // 4. Seed BHP (Consumables)
+  // 5. Seed BHP (Consumables)
   console.log('Seeding BHP (Consumables)...');
   const rj45 = await prisma.bHP.create({
     data: {
@@ -155,7 +181,7 @@ async function main() {
 
   console.log(`Seeded BHP items: ${rj45.name}, ${utpCable.name}, ${solderWire.name}, ${cableTies.name}`);
 
-  // 5. Seed Inventory (Assets)
+  // 6. Seed Inventory (Assets)
   console.log('Seeding Inventories (Assets)...');
   const netPC1 = await prisma.inventory.create({
     data: {
@@ -240,7 +266,7 @@ async function main() {
 
   console.log('Seeded inventories.');
 
-  // 6. Seed ProcurementDraft (Procurement Requests)
+  // 7. Seed ProcurementDraft (Procurement Requests)
   console.log('Seeding Procurement Drafts...');
   const draft1 = await prisma.procurementDraft.create({
     data: {
@@ -272,7 +298,7 @@ async function main() {
 
   console.log(`Seeded procurement drafts: "${draft1.title}", "${draft2.title}", "${draft3.title}"`);
 
-  // 7. Seed ProcurementItem
+  // 8. Seed ProcurementItem
   console.log('Seeding Procurement Items...');
   await prisma.procurementItem.create({
     data: {
@@ -350,7 +376,7 @@ async function main() {
 
   console.log('Seeded procurement items.');
 
-  // 8. Seed MaintenanceLog
+  // 9. Seed MaintenanceLog
   console.log('Seeding Maintenance Logs...');
   const log1 = await prisma.maintenanceLog.create({
     data: {
@@ -384,7 +410,7 @@ async function main() {
 
   console.log('Seeded maintenance logs.');
 
-  // 9. Seed MaintenanceBHPUsage
+  // 10. Seed MaintenanceBHPUsage
   console.log('Seeding Maintenance BHP Usages...');
   await prisma.maintenanceBHPUsage.create({
     data: {
