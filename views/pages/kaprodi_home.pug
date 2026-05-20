@@ -1,0 +1,62 @@
+extends ../layouts/main.pug
+
+block sidebar
+  include ../components/sidebars/kaprodi.pug
+
+block content
+  div(class="max-w-7xl mx-auto")
+    //- Hero Header Section
+    div(class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4")
+      div
+        div(class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-sm mb-4")
+          span(class="w-2 h-2 rounded-full bg-orange-500 animate-pulse")
+          span(class="text-xs font-bold tracking-wide text-slate-600 uppercase") Evaluation & Reviews
+        h2(class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900") Good morning, Kaprodi
+        p(class="text-slate-500 mt-2 text-lg font-medium") Department-level procurement requests await your review.
+      div(class="flex items-center gap-3")
+        button(class="px-4 py-2.5 bg-slate-900 rounded-xl text-sm font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-green-700 hover:shadow-green-700/20 transition-all duration-300 hover:-translate-y-0.5") View Pending Reviews
+    
+    //- Fluid Metric Cards Grid
+    div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6")
+      
+      //- Card 1
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-orange-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-orange-50 group-hover:border-orange-100 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-orange-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01")
+          span(class="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 border border-orange-200/60") High Priority
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Reviews Pending Action
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 8
+            span(class="text-sm font-medium text-slate-400") drafts
+            
+      //- Card 2
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-green-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-green-50 group-hover:border-green-100 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z")
+          span(class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600 border border-slate-200") This Month
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Approved Items
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 142
+            span(class="text-sm font-medium text-slate-400") items
+            
+      //- Card 3
+      div(class="group rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative overflow-hidden")
+        div(class="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-red-500/10")
+        div(class="flex justify-between items-start mb-6 relative z-10")
+          div(class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:bg-red-50 group-hover:border-red-100 transition-colors")
+            svg(class="w-6 h-6 text-slate-600 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24")
+              path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z")
+          span(class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700 border border-red-200/60") Budget Constraints
+        div(class="relative z-10")
+          h3(class="text-slate-500 font-semibold text-sm mb-1") Flagged/Rejected
+          div(class="flex items-baseline gap-2")
+            p(class="text-4xl font-extrabold tracking-tight text-slate-900") 12
+            span(class="text-sm font-medium text-slate-400") items
