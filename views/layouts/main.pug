@@ -4,15 +4,7 @@ html(lang="en")
     meta(charset="UTF-8")
     meta(name="viewport" content="width=device-width, initial-scale=1.0")
     title LabMaster - Asset & BHP Management
-    script(src="https://cdn.tailwindcss.com")
-    style.
-      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-      body { font-family: 'Plus Jakarta Sans', sans-serif; }
-      .sidebar-open { transform: translateX(0%); }
-      .sidebar-closed { transform: translateX(-100%); }
-      @media (min-width: 1024px) {
-        .sidebar-closed { transform: translateX(0%); }
-      }
+    link(rel="stylesheet" href="/css/tailwind.css")
     script.
       function toggleSidebar() {
         const sidebar = document.getElementById('sidebar-container');
