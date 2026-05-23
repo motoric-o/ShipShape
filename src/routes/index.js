@@ -78,15 +78,15 @@ router.delete('/api/bhp/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_LAB
 
 router.get('/api/procurements', requireApiAuth, ProcurementController.getAllDrafts);
 router.get('/api/procurements/:id', requireApiAuth, ProcurementController.getDraftDetails);
-router.post('/api/procurements', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN']), ProcurementController.createDraft);
-router.put('/api/procurements/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN']), ProcurementController.updateDraft);
-router.patch('/api/procurements/:id/status', requireApiAuth, requireApiRole(['ADMIN', 'KAPRODI', 'KALAB']), ProcurementController.updateDraftStatus);
-router.delete('/api/procurements/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN']), ProcurementController.deleteDraft);
+router.post('/api/procurements', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.createDraft);
+router.put('/api/procurements/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.updateDraft);
+router.patch('/api/procurements/:id/status', requireApiAuth, requireApiRole(['ADMIN', 'KAPRODI', 'KALAB', 'STAF_LAB']), ProcurementController.updateDraftStatus);
+router.delete('/api/procurements/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.deleteDraft);
 
-router.post('/api/procurements/:draftId/items', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN']), ProcurementController.addItem);
-router.put('/api/procurements/items/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN']), ProcurementController.updateItem);
-router.patch('/api/procurements/items/:id/status', requireApiAuth, requireApiRole(['ADMIN', 'KALAB']), ProcurementController.updateItemStatus);
-router.delete('/api/procurements/items/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN']), ProcurementController.deleteItem);
+router.post('/api/procurements/:draftId/items', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.addItem);
+router.put('/api/procurements/items/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.updateItem);
+router.patch('/api/procurements/items/:id/status', requireApiAuth, requireApiRole(['ADMIN', 'KALAB', 'KAPRODI', 'STAF_ADMIN']), ProcurementController.updateItemStatus);
+router.delete('/api/procurements/items/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.deleteItem);
 
 router.get('/api/maintenance', requireApiAuth, MaintenanceController.getAllLogs);
 router.get('/api/maintenance/:id', requireApiAuth, MaintenanceController.getLogDetails);
