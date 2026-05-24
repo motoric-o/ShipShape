@@ -61,13 +61,52 @@ router.get('/rooms/:id/edit', requireAuth, requireRole(['ADMIN']), RoomControlle
 router.put('/rooms/:id', requireAuth, requireRole(['ADMIN']), RoomController.update);
 router.delete('/rooms/:id', requireAuth, requireRole(['ADMIN']), RoomController.destroy);
 
+// --- Inventory Routes ---
+router.get('/inventory', requireAuth, InventoryController.index);
+router.get('/inventory/new', requireAuth, requireRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.create);
+router.post('/inventory', requireAuth, requireRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.store);
+router.get('/inventory/:id/edit', requireAuth, requireRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.edit);
+router.put('/inventory/:id', requireAuth, requireRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.update);
+router.delete('/inventory/:id', requireAuth, requireRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.destroy);
+
+// --- BHP Routes ---
+router.get('/bhp', requireAuth, BHPController.index);
+router.get('/bhp/new', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.create);
+router.post('/bhp', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.store);
+router.get('/bhp/:id/edit', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.edit);
+router.put('/bhp/:id', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.update);
+router.patch('/bhp/:id/stock', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.adjustStock);
+router.delete('/bhp/:id', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.destroy);
+
+// --- Procurement Routes ---
+router.get('/procurements', requireAuth, ProcurementController.index);
+router.get('/procurements/new', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.create);
+router.post('/procurements', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.store);
+router.get('/procurements/:id', requireAuth, ProcurementController.show);
+router.get('/procurements/:id/edit', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.edit);
+router.put('/procurements/:id', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.update);
+router.patch('/procurements/:id/status', requireAuth, requireRole(['ADMIN', 'KAPRODI', 'KALAB', 'STAF_LAB']), ProcurementController.updateDraftStatus);
+router.delete('/procurements/:id', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.destroy);
+
+router.post('/procurements/:draftId/items', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.addItem);
+router.put('/procurements/items/:id', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.updateItem);
+router.patch('/procurements/items/:id/status', requireAuth, requireRole(['ADMIN', 'KALAB', 'KAPRODI', 'STAF_ADMIN']), ProcurementController.updateItemStatus);
+router.delete('/procurements/items/:id', requireAuth, requireRole(['ADMIN', 'STAF_ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.deleteItem);
+
+// --- Maintenance Routes ---
+router.get('/maintenance', requireAuth, MaintenanceController.index);
+router.get('/maintenance/new', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), MaintenanceController.create);
+router.post('/maintenance', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), MaintenanceController.store);
+router.get('/maintenance/:id', requireAuth, MaintenanceController.show);
+router.delete('/maintenance/:id', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), MaintenanceController.destroy);
+
 // --- Legacy JSON API Routes ---
 // These remain functional but under the /api/ prefix
 router.get('/api/inventory', requireApiAuth, InventoryController.getAllInventory);
 router.get('/api/inventory/:id', requireApiAuth, InventoryController.getInventoryDetails);
-router.post('/api/inventory', requireApiAuth, requireApiRole(['ADMIN', 'STAF_LAB']), InventoryController.createInventory);
-router.put('/api/inventory/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_LAB']), InventoryController.updateInventory);
-router.delete('/api/inventory/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_LAB']), InventoryController.deleteInventory);
+router.post('/api/inventory', requireApiAuth, requireApiRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.createInventory);
+router.put('/api/inventory/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.updateInventory);
+router.delete('/api/inventory/:id', requireApiAuth, requireApiRole(['ADMIN', 'STAF_LAB', 'STAF_ADMIN']), InventoryController.deleteInventory);
 
 router.get('/api/bhp', requireApiAuth, BHPController.getAllBHP);
 router.get('/api/bhp/:id', requireApiAuth, BHPController.getBHPDetails);

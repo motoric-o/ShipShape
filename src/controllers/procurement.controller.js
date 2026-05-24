@@ -2,6 +2,235 @@ const ProcurementModel = require('../models/procurement.model');
 const prisma = require('../config/db');
 
 const ProcurementController = {
+  // --- Web MVC Actions ---
+  async index(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const search = req.query.search || '';
+      const status = req.query.status || '';
+      const year = req.query.year ? parseInt(req.query.year) : undefined;
+      const createdById = req.query.createdById ? parseInt(req.query.createdById) : undefined;
+
+      const skip = (page - 1) * limit;
+
+      const where = {
+        ...(search.trim() !== '' ? {
+          title: { contains: search }
+        } : {}),
+        ...(status.trim() !== '' ? { status } : {}),
+        ...(year ? { year } : {}),
+        ...(createdById ? { createdById } : {})
+      };
+
+      const [drafts, totalItems] = await Promise.all([
+        prisma.procurementDraft.findMany({
+          where,
+          include: {
+            createdBy: { select: { id: true, name: true, email: true } },
+            reviewedBy: { select: { id: true, name: true, email: true } },
+            items: true
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        prisma.procurementDraft.count({ where })
+      ]);
+
+      const totalPages = Math.ceil(totalItems / limit);
+      const startIndex = totalItems === 0 ? 0 : skip + 1;
+      const endIndex = Math.min(skip + limit, totalItems);
+
+      let startPage = Math.max(1, page - 2);
+      let endPage = Math.min(totalPages, startPage + 4);
+      if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+      }
+      const pages = [];
+      for (let p = startPage; p <= endPage; p++) {
+        pages.push(p);
+      }
+
+      res.render('pages/procurements/index', {
+        drafts,
+        selectedStatus: status,
+        selectedYear: year || '',
+        sessionUser: req.session,
+        searchActionUrl: '/procurements',
+        searchPlaceholder: 'Cari pengadaan...',
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems,
+          limit,
+          startIndex,
+          endIndex,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+          search,
+          pages
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Error fetching procurements');
+    }
+  },
+
+  async show(req, res, next) {
+    try {
+      const { id } = req.params;
+      const draft = await ProcurementModel.findDraftById(id);
+      if (!draft) {
+        return res.redirect('/procurements');
+      }
+      const rooms = await prisma.room.findMany({ orderBy: { name: 'asc' } });
+      const inventoryItems = await prisma.inventory.findMany({ orderBy: { name: 'asc' } });
+      res.render('pages/procurements/show', {
+        draft,
+        rooms,
+        inventoryItems,
+        sessionUser: req.session
+      });
+    } catch (error) {
+      console.error(error);
+      res.redirect('/procurements');
+    }
+  },
+
+  async create(req, res, next) {
+    try {
+      res.render('pages/procurements/form', {
+        sessionUser: req.session,
+        backUrl: '/procurements',
+        actionUrl: '/procurements',
+        isPut: false
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Error loading form');
+    }
+  },
+
+  async store(req, res, next) {
+    try {
+      const { title, year } = req.body;
+      const createdById = req.session.userId;
+      if (!title || typeof title !== 'string' || title.trim() === '') {
+        return res.redirect('/procurements/new?error=Title is required');
+      }
+      const parsedYear = parseInt(year);
+      if (isNaN(parsedYear) || parsedYear <= 0) {
+        return res.redirect('/procurements/new?error=Year must be a positive integer');
+      }
+      if (!createdById) {
+        return res.redirect('/login');
+      }
+      const newDraft = await ProcurementModel.createDraft({
+        title: title.trim(),
+        year: parsedYear,
+        createdById: parseInt(createdById)
+      });
+      res.redirect(`/procurements/${newDraft.id}`);
+    } catch (error) {
+      console.error('Error creating draft:', error);
+      res.redirect('/procurements/new?error=Failed to create draft');
+    }
+  },
+
+  async edit(req, res, next) {
+    try {
+      const draft = await ProcurementModel.findDraftById(req.params.id);
+      if (!draft) return res.redirect('/procurements');
+      res.render('pages/procurements/form', {
+        sessionUser: req.session,
+        draft,
+        backUrl: `/procurements/${draft.id}`,
+        actionUrl: `/procurements/${draft.id}?_method=PUT`,
+        isPut: true
+      });
+    } catch (error) {
+      console.error(error);
+      res.redirect('/procurements');
+    }
+  },
+
+  async update(req, res, next) {
+    const { id } = req.params;
+    try {
+      const { title, year } = req.body;
+      const userRole = req.session.userRole;
+      const userId = req.session.userId;
+
+      const draft = await ProcurementModel.findDraftById(id);
+      if (!draft) {
+        return res.redirect('/procurements');
+      }
+
+      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
+        if (draft.createdById !== userId) {
+          return res.redirect(`/procurements/${id}?error=You are not authorized to update this draft`);
+        }
+      }
+
+      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
+        return res.redirect(`/procurements/${id}?error=Cannot modify a draft that is locked or approved`);
+      }
+
+      const updatedData = {};
+      if (title !== undefined) {
+        if (typeof title !== 'string' || title.trim() === '') {
+          return res.redirect(`/procurements/${id}/edit?error=Title must be a non-empty string`);
+        }
+        updatedData.title = title.trim();
+      }
+      if (year !== undefined) {
+        const parsedYear = parseInt(year);
+        if (isNaN(parsedYear) || parsedYear <= 0) {
+          return res.redirect(`/procurements/${id}/edit?error=Year must be a positive integer`);
+        }
+        updatedData.year = parsedYear;
+      }
+
+      await ProcurementModel.updateDraft(id, updatedData);
+      res.redirect(`/procurements/${id}`);
+    } catch (error) {
+      console.error('Error updating draft:', error);
+      res.redirect(`/procurements/${id}/edit?error=Failed to update draft`);
+    }
+  },
+
+  async destroy(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userRole = req.session.userRole;
+      const userId = req.session.userId;
+
+      const draft = await ProcurementModel.findDraftById(id);
+      if (!draft) {
+        return res.redirect('/procurements');
+      }
+
+      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
+        if (draft.createdById !== userId) {
+          return res.redirect(`/procurements/${id}?error=You are not authorized to delete this draft`);
+        }
+      }
+
+      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
+        return res.redirect(`/procurements/${id}?error=Cannot delete a draft that is locked or approved`);
+      }
+
+      await ProcurementModel.deleteDraft(id);
+      res.redirect('/procurements');
+    } catch (error) {
+      console.error(error);
+      res.redirect('/procurements');
+    }
+  },
+
+  // --- API JSON Actions & Shared Actions ---
   async getAllDrafts(req, res, next) {
     try {
       const { status, year, createdById } = req.query;
@@ -62,14 +291,12 @@ const ProcurementController = {
         return res.status(404).json({ error: 'Procurement draft not found' });
       }
 
-      // Ownership authorization check for non-admin/non-staf-admin roles
       if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
         if (draft.createdById !== userId) {
           return res.status(403).json({ error: 'You are not authorized to update this draft' });
         }
       }
 
-      // Status lock check
       if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
         return res.status(400).json({ error: 'Cannot modify a draft that is locked or approved' });
       }
@@ -102,52 +329,65 @@ const ProcurementController = {
       const { status } = req.body;
       const reviewedById = req.session.userId;
       const userRole = req.session.userRole;
+      const isApi = req.originalUrl.startsWith('/api');
 
       if (!status) {
-        return res.status(400).json({ error: 'Status is required' });
+        if (isApi) return res.status(400).json({ error: 'Status is required' });
+        return res.redirect(`/procurements/${id}?error=Status is required`);
       }
 
       const allowedStatuses = ['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'LOCKED'];
       if (!allowedStatuses.includes(status)) {
-        return res.status(400).json({ error: 'Invalid status value' });
+        if (isApi) return res.status(400).json({ error: 'Invalid status value' });
+        return res.redirect(`/procurements/${id}?error=Invalid status value`);
       }
 
       const draft = await ProcurementModel.findDraftById(id);
       if (!draft) {
-        return res.status(404).json({ error: 'Procurement draft not found' });
+        if (isApi) return res.status(404).json({ error: 'Procurement draft not found' });
+        return res.redirect(`/procurements?error=Procurement draft not found`);
       }
 
       // Check transitions and roles
       if (status === 'APPROVED') {
         if (userRole !== 'ADMIN' && userRole !== 'KAPRODI') {
-          return res.status(403).json({ error: 'You are not authorized to approve/finalize procurement drafts' });
+          if (isApi) return res.status(403).json({ error: 'You are not authorized to approve/finalize procurement drafts' });
+          return res.redirect(`/procurements/${id}?error=You are not authorized to approve/finalize procurement drafts`);
         }
         if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
-          return res.status(400).json({ error: 'Only locked or pending review drafts can be approved/finalized' });
+          if (isApi) return res.status(400).json({ error: 'Only locked or pending review drafts can be approved/finalized' });
+          return res.redirect(`/procurements/${id}?error=Only locked or pending review drafts can be approved/finalized`);
         }
-        // Verify all items are resolved (approved or rejected)
         const hasPendingItems = draft.items.some(item => item.status === 'PENDING');
         if (hasPendingItems) {
-          return res.status(400).json({ error: 'Cannot finalize draft. All items must be either APPROVED or REJECTED.' });
+          if (isApi) return res.status(400).json({ error: 'Cannot finalize draft. All items must be either APPROVED or REJECTED.' });
+          return res.redirect(`/procurements/${id}?error=Cannot finalize draft. All items must be either APPROVED or REJECTED.`);
         }
       } else if (status === 'DRAFT') {
         if (userRole !== 'ADMIN' && userRole !== 'KAPRODI' && draft.createdById !== reviewedById) {
-          return res.status(403).json({ error: 'You are not authorized to reset this draft status' });
+          if (isApi) return res.status(403).json({ error: 'You are not authorized to reset this draft status' });
+          return res.redirect(`/procurements/${id}?error=You are not authorized to reset this draft status`);
         }
         if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
-          return res.status(400).json({ error: 'Only locked or pending review drafts can be returned to DRAFT status' });
+          if (isApi) return res.status(400).json({ error: 'Only locked or pending review drafts can be returned to DRAFT status' });
+          return res.redirect(`/procurements/${id}?error=Only locked or pending review drafts can be returned to DRAFT status`);
         }
       } else if (status === 'LOCKED' || status === 'PENDING_REVIEW') {
         if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN' && draft.createdById !== reviewedById) {
-          return res.status(403).json({ error: 'You are not authorized to lock/submit this draft' });
+          if (isApi) return res.status(403).json({ error: 'You are not authorized to lock/submit this draft' });
+          return res.redirect(`/procurements/${id}?error=You are not authorized to lock/submit this draft`);
         }
         if (draft.status !== 'DRAFT') {
-          return res.status(400).json({ error: 'Only drafts in DRAFT status can be locked or submitted for review' });
+          if (isApi) return res.status(400).json({ error: 'Only drafts in DRAFT status can be locked or submitted for review' });
+          return res.redirect(`/procurements/${id}?error=Only drafts in DRAFT status can be locked or submitted for review`);
         }
       }
 
       const updatedDraft = await ProcurementModel.updateDraftStatus(id, status, reviewedById);
-      return res.json({ message: `Draft status updated to ${status}`, draft: updatedDraft });
+      if (isApi) {
+        return res.json({ message: `Draft status updated to ${status}`, draft: updatedDraft });
+      }
+      res.redirect(`/procurements/${id}`);
     } catch (error) {
       next(error);
     }
@@ -164,14 +404,12 @@ const ProcurementController = {
         return res.status(404).json({ error: 'Procurement draft not found' });
       }
 
-      // Ownership check for non-admin/non-staf-admin roles
       if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
         if (draft.createdById !== userId) {
           return res.status(403).json({ error: 'You are not authorized to delete this draft' });
         }
       }
 
-      // Status lock check
       if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
         return res.status(400).json({ error: 'Cannot delete a draft that is locked or approved' });
       }
@@ -189,38 +427,43 @@ const ProcurementController = {
       const { type, name, price, quantity, link, replacedInventoryId } = req.body;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
+      const isApi = req.originalUrl.startsWith('/api');
 
       const draft = await ProcurementModel.findDraftById(draftId);
       if (!draft) {
-        return res.status(404).json({ error: 'Procurement draft not found' });
+        if (isApi) return res.status(404).json({ error: 'Procurement draft not found' });
+        return res.redirect(`/procurements?error=Procurement draft not found`);
       }
 
-      // Ownership check for non-admin/non-staf-admin roles
       if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
         if (draft.createdById !== userId) {
-          return res.status(403).json({ error: 'You are not authorized to add items to this draft' });
+          if (isApi) return res.status(403).json({ error: 'You are not authorized to add items to this draft' });
+          return res.redirect(`/procurements/${draftId}?error=You are not authorized to add items to this draft`);
         }
       }
 
-      // Status lock check
       if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        return res.status(400).json({ error: 'Cannot add items to a draft that is locked or approved' });
+        if (isApi) return res.status(400).json({ error: 'Cannot add items to a draft that is locked or approved' });
+        return res.redirect(`/procurements/${draftId}?error=Cannot add items to a draft that is locked or approved`);
       }
 
-      // Validations
       if (type !== 'INVENTORY' && type !== 'BHP') {
-        return res.status(400).json({ error: 'Type must be either INVENTORY or BHP' });
+        if (isApi) return res.status(400).json({ error: 'Type must be either INVENTORY or BHP' });
+        return res.redirect(`/procurements/${draftId}?error=Type must be either INVENTORY or BHP`);
       }
       if (!name || typeof name !== 'string' || name.trim() === '') {
-        return res.status(400).json({ error: 'Name is required and must be a non-empty string' });
+        if (isApi) return res.status(400).json({ error: 'Name is required' });
+        return res.redirect(`/procurements/${draftId}?error=Name is required`);
       }
       const parsedPrice = parseFloat(price);
       if (isNaN(parsedPrice) || parsedPrice < 0) {
-        return res.status(400).json({ error: 'Price must be a non-negative number' });
+        if (isApi) return res.status(400).json({ error: 'Price must be a non-negative number' });
+        return res.redirect(`/procurements/${draftId}?error=Price must be a non-negative number`);
       }
       const parsedQty = parseInt(quantity);
       if (isNaN(parsedQty) || parsedQty <= 0) {
-        return res.status(400).json({ error: 'Quantity must be a positive integer' });
+        if (isApi) return res.status(400).json({ error: 'Quantity must be a positive integer' });
+        return res.redirect(`/procurements/${draftId}?error=Quantity must be a positive integer`);
       }
 
       const itemData = {
@@ -234,17 +477,22 @@ const ProcurementController = {
       if (replacedInventoryId !== undefined && replacedInventoryId !== null && replacedInventoryId !== '') {
         const invId = parseInt(replacedInventoryId);
         if (isNaN(invId)) {
-          return res.status(400).json({ error: 'replacedInventoryId must be an integer' });
+          if (isApi) return res.status(400).json({ error: 'replacedInventoryId must be an integer' });
+          return res.redirect(`/procurements/${draftId}?error=replacedInventoryId must be an integer`);
         }
         const inventory = await prisma.inventory.findUnique({ where: { id: invId } });
         if (!inventory) {
-          return res.status(400).json({ error: 'Replaced inventory item not found' });
+          if (isApi) return res.status(400).json({ error: 'Replaced inventory item not found' });
+          return res.redirect(`/procurements/${draftId}?error=Replaced inventory item not found`);
         }
         itemData.replacedInventoryId = invId;
       }
 
       const newItem = await ProcurementModel.addItemToDraft(draftId, itemData);
-      return res.status(201).json({ message: 'Procurement item added successfully', item: newItem });
+      if (isApi) {
+        return res.status(201).json({ message: 'Procurement item added successfully', item: newItem });
+      }
+      res.redirect(`/procurements/${draftId}`);
     } catch (error) {
       next(error);
     }
@@ -256,43 +504,49 @@ const ProcurementController = {
       const { name, price, quantity, link, replacedInventoryId } = req.body;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
+      const isApi = req.originalUrl.startsWith('/api');
 
       const item = await ProcurementModel.findItemById(id);
       if (!item) {
-        return res.status(404).json({ error: 'Procurement item not found' });
+        if (isApi) return res.status(404).json({ error: 'Procurement item not found' });
+        return res.redirect(`/procurements?error=Procurement item not found`);
       }
 
       const draft = item.draft;
-      // Ownership check for non-admin/non-staf-admin roles
+      const draftId = draft.id;
       if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
         if (draft.createdById !== userId) {
-          return res.status(403).json({ error: 'You are not authorized to update items in this draft' });
+          if (isApi) return res.status(403).json({ error: 'You are not authorized to update items in this draft' });
+          return res.redirect(`/procurements/${draftId}?error=You are not authorized to update items in this draft`);
         }
       }
 
-      // Status lock check
       if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        return res.status(400).json({ error: 'Cannot update items in a draft that is locked or approved' });
+        if (isApi) return res.status(400).json({ error: 'Cannot update items in a draft that is locked or approved' });
+        return res.redirect(`/procurements/${draftId}?error=Cannot update items in a draft that is locked or approved`);
       }
 
       const updatedData = {};
       if (name !== undefined) {
         if (typeof name !== 'string' || name.trim() === '') {
-          return res.status(400).json({ error: 'Name must be a non-empty string' });
+          if (isApi) return res.status(400).json({ error: 'Name must be a non-empty string' });
+          return res.redirect(`/procurements/${draftId}?error=Name must be a non-empty string`);
         }
         updatedData.name = name.trim();
       }
       if (price !== undefined) {
         const parsedPrice = parseFloat(price);
         if (isNaN(parsedPrice) || parsedPrice < 0) {
-          return res.status(400).json({ error: 'Price must be a non-negative number' });
+          if (isApi) return res.status(400).json({ error: 'Price must be a non-negative number' });
+          return res.redirect(`/procurements/${draftId}?error=Price must be a non-negative number`);
         }
         updatedData.price = parsedPrice;
       }
       if (quantity !== undefined) {
         const parsedQty = parseInt(quantity);
         if (isNaN(parsedQty) || parsedQty <= 0) {
-          return res.status(400).json({ error: 'Quantity must be a positive integer' });
+          if (isApi) return res.status(400).json({ error: 'Quantity must be a positive integer' });
+          return res.redirect(`/procurements/${draftId}?error=Quantity must be a positive integer`);
         }
         updatedData.quantity = parsedQty;
       }
@@ -305,18 +559,23 @@ const ProcurementController = {
         } else {
           const invId = parseInt(replacedInventoryId);
           if (isNaN(invId)) {
-            return res.status(400).json({ error: 'replacedInventoryId must be an integer' });
+            if (isApi) return res.status(400).json({ error: 'replacedInventoryId must be an integer' });
+            return res.redirect(`/procurements/${draftId}?error=replacedInventoryId must be an integer`);
           }
           const inventory = await prisma.inventory.findUnique({ where: { id: invId } });
           if (!inventory) {
-            return res.status(400).json({ error: 'Replaced inventory item not found' });
+            if (isApi) return res.status(400).json({ error: 'Replaced inventory item not found' });
+            return res.redirect(`/procurements/${draftId}?error=Replaced inventory item not found`);
           }
           updatedData.replacedInventoryId = invId;
         }
       }
 
       const updatedItem = await ProcurementModel.updateItem(id, updatedData);
-      return res.json({ message: 'Procurement item updated successfully', item: updatedItem });
+      if (isApi) {
+        return res.json({ message: 'Procurement item updated successfully', item: updatedItem });
+      }
+      res.redirect(`/procurements/${draftId}`);
     } catch (error) {
       next(error);
     }
@@ -327,51 +586,97 @@ const ProcurementController = {
       const { id } = req.params;
       const { status, receiveDate } = req.body;
       const userRole = req.session.userRole;
+      const isApi = req.originalUrl.startsWith('/api');
 
       if (!status) {
-        return res.status(400).json({ error: 'Status is required' });
+        if (isApi) return res.status(400).json({ error: 'Status is required' });
+        return res.redirect(`/procurements?error=Status is required`);
       }
 
       const allowedItemStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
       if (!allowedItemStatuses.includes(status)) {
-        return res.status(400).json({ error: 'Invalid status value' });
+        if (isApi) return res.status(400).json({ error: 'Invalid status value' });
+        return res.redirect(`/procurements?error=Invalid status value`);
       }
 
       const item = await ProcurementModel.findItemById(id);
       if (!item) {
-        return res.status(404).json({ error: 'Procurement item not found' });
+        if (isApi) return res.status(404).json({ error: 'Procurement item not found' });
+        return res.redirect(`/procurements?error=Procurement item not found`);
       }
 
       const draft = item.draft;
+      const draftId = draft.id;
 
       // Case 1: Recording receiveDate (receipt logistics)
       if (receiveDate !== undefined && receiveDate !== null && receiveDate !== '') {
         if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-          return res.status(403).json({ error: 'Only Staf Admin or Admin can record item receipts' });
+          if (isApi) return res.status(403).json({ error: 'Only Staf Admin or Admin can record item receipts' });
+          return res.redirect(`/procurements/${draftId}?error=Only Staf Admin or Admin can record item receipts`);
         }
         if (draft.status !== 'APPROVED') {
-          return res.status(400).json({ error: 'Items can only be received after the draft is finalized and approved' });
+          if (isApi) return res.status(400).json({ error: 'Items can only be received after the draft is finalized and approved' });
+          return res.redirect(`/procurements/${draftId}?error=Items can only be received after the draft is finalized and approved`);
         }
         if (status !== 'APPROVED' && item.status !== 'APPROVED') {
-          return res.status(400).json({ error: 'Only approved items can be marked as received' });
+          if (isApi) return res.status(400).json({ error: 'Only approved items can be marked as received' });
+          return res.redirect(`/procurements/${draftId}?error=Only approved items can be marked as received`);
         }
       } 
       // Case 2: Approving or Rejecting items (Kaprodi review)
       else {
         if (userRole !== 'ADMIN' && userRole !== 'KAPRODI') {
-          return res.status(403).json({ error: 'Only Kaprodi or Admin can approve/reject procurement items' });
+          if (isApi) return res.status(403).json({ error: 'Only Kaprodi or Admin can approve/reject procurement items' });
+          return res.redirect(`/procurements/${draftId}?error=Only Kaprodi or Admin can approve/reject procurement items`);
         }
         if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
-          return res.status(400).json({ error: 'Items can only be approved/rejected when the draft is locked or pending review' });
+          if (isApi) return res.status(400).json({ error: 'Items can only be approved/rejected when the draft is locked or pending review' });
+          return res.redirect(`/procurements/${draftId}?error=Items can only be approved/rejected when the draft is locked or pending review`);
         }
       }
 
       const parsedReceiveDate = receiveDate ? new Date(receiveDate) : null;
-      // If item is rejected, force receiveDate to null
       const finalReceiveDate = status === 'REJECTED' ? null : parsedReceiveDate;
+      const isNewlyReceived = item.receiveDate === null && finalReceiveDate !== null;
 
       const updatedItem = await ProcurementModel.updateItemStatus(id, status, finalReceiveDate);
-      return res.json({ message: `Item status updated to ${status}`, item: updatedItem });
+
+      // Automatic asset registration if newly received and is of type INVENTORY
+      if (isNewlyReceived && item.type === 'INVENTORY') {
+        let roomId = null;
+        if (item.replacedInventoryId) {
+          const replaced = await prisma.inventory.findUnique({
+            where: { id: item.replacedInventoryId }
+          });
+          if (replaced) roomId = replaced.roomId;
+        }
+
+        if (!roomId) {
+          const defaultRoom = await prisma.room.findFirst({
+            orderBy: { id: 'asc' }
+          });
+          roomId = defaultRoom ? defaultRoom.id : 1;
+        }
+
+        const promises = [];
+        for (let i = 0; i < item.quantity; i++) {
+          promises.push(
+            prisma.inventory.create({
+              data: {
+                name: item.name,
+                condition: 'GOOD',
+                roomId: roomId
+              }
+            })
+          );
+        }
+        await Promise.all(promises);
+      }
+
+      if (isApi) {
+        return res.json({ message: `Item status updated to ${status}`, item: updatedItem });
+      }
+      res.redirect(`/procurements/${draftId}`);
     } catch (error) {
       next(error);
     }
@@ -382,27 +687,33 @@ const ProcurementController = {
       const { id } = req.params;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
+      const isApi = req.originalUrl.startsWith('/api');
 
       const item = await ProcurementModel.findItemById(id);
       if (!item) {
-        return res.status(404).json({ error: 'Procurement item not found' });
+        if (isApi) return res.status(404).json({ error: 'Procurement item not found' });
+        return res.redirect(`/procurements?error=Procurement item not found`);
       }
 
       const draft = item.draft;
-      // Ownership check for non-admin/non-staf-admin roles
+      const draftId = draft.id;
       if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
         if (draft.createdById !== userId) {
-          return res.status(403).json({ error: 'You are not authorized to delete items from this draft' });
+          if (isApi) return res.status(403).json({ error: 'You are not authorized to delete items from this draft' });
+          return res.redirect(`/procurements/${draftId}?error=You are not authorized to delete items from this draft`);
         }
       }
 
-      // Status lock check
       if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        return res.status(400).json({ error: 'Cannot delete items from a draft that is locked or approved' });
+        if (isApi) return res.status(400).json({ error: 'Cannot delete items from a draft that is locked or approved' });
+        return res.redirect(`/procurements/${draftId}?error=Cannot delete items from a draft that is locked or approved`);
       }
 
       await ProcurementModel.deleteItem(id);
-      return res.json({ message: 'Procurement item deleted successfully' });
+      if (isApi) {
+        return res.json({ message: 'Procurement item deleted successfully' });
+      }
+      res.redirect(`/procurements/${draftId}`);
     } catch (error) {
       next(error);
     }
