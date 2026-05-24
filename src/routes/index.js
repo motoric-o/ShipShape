@@ -16,6 +16,7 @@ const { requireWebAuth: requireAuth, requireWebRole: requireRole, requireApiAuth
 // --- Global Middleware ---
 router.use((req, res, next) => {
   res.locals.currentPath = req.path;
+  res.locals.currentQuery = req.query;
   next();
 });
 
