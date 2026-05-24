@@ -117,9 +117,33 @@ const ProcurementController = {
         return res.status(404).json({ error: 'Procurement draft not found' });
       }
 
-      // Non-admin, non-kaprodi users (like KALAB and STAF_LAB) cannot approve drafts
-      if (status === 'APPROVED' && userRole !== 'ADMIN' && userRole !== 'KAPRODI') {
-        return res.status(403).json({ error: 'You are not authorized to approve procurement drafts' });
+      // Check transitions and roles
+      if (status === 'APPROVED') {
+        if (userRole !== 'ADMIN' && userRole !== 'KAPRODI') {
+          return res.status(403).json({ error: 'You are not authorized to approve/finalize procurement drafts' });
+        }
+        if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
+          return res.status(400).json({ error: 'Only locked or pending review drafts can be approved/finalized' });
+        }
+        // Verify all items are resolved (approved or rejected)
+        const hasPendingItems = draft.items.some(item => item.status === 'PENDING');
+        if (hasPendingItems) {
+          return res.status(400).json({ error: 'Cannot finalize draft. All items must be either APPROVED or REJECTED.' });
+        }
+      } else if (status === 'DRAFT') {
+        if (userRole !== 'ADMIN' && userRole !== 'KAPRODI' && draft.createdById !== reviewedById) {
+          return res.status(403).json({ error: 'You are not authorized to reset this draft status' });
+        }
+        if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
+          return res.status(400).json({ error: 'Only locked or pending review drafts can be returned to DRAFT status' });
+        }
+      } else if (status === 'LOCKED' || status === 'PENDING_REVIEW') {
+        if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN' && draft.createdById !== reviewedById) {
+          return res.status(403).json({ error: 'You are not authorized to lock/submit this draft' });
+        }
+        if (draft.status !== 'DRAFT') {
+          return res.status(400).json({ error: 'Only drafts in DRAFT status can be locked or submitted for review' });
+        }
       }
 
       const updatedDraft = await ProcurementModel.updateDraftStatus(id, status, reviewedById);
@@ -302,6 +326,7 @@ const ProcurementController = {
     try {
       const { id } = req.params;
       const { status, receiveDate } = req.body;
+      const userRole = req.session.userRole;
 
       if (!status) {
         return res.status(400).json({ error: 'Status is required' });
@@ -317,8 +342,35 @@ const ProcurementController = {
         return res.status(404).json({ error: 'Procurement item not found' });
       }
 
+      const draft = item.draft;
+
+      // Case 1: Recording receiveDate (receipt logistics)
+      if (receiveDate !== undefined && receiveDate !== null && receiveDate !== '') {
+        if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
+          return res.status(403).json({ error: 'Only Staf Admin or Admin can record item receipts' });
+        }
+        if (draft.status !== 'APPROVED') {
+          return res.status(400).json({ error: 'Items can only be received after the draft is finalized and approved' });
+        }
+        if (status !== 'APPROVED' && item.status !== 'APPROVED') {
+          return res.status(400).json({ error: 'Only approved items can be marked as received' });
+        }
+      } 
+      // Case 2: Approving or Rejecting items (Kaprodi review)
+      else {
+        if (userRole !== 'ADMIN' && userRole !== 'KAPRODI') {
+          return res.status(403).json({ error: 'Only Kaprodi or Admin can approve/reject procurement items' });
+        }
+        if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
+          return res.status(400).json({ error: 'Items can only be approved/rejected when the draft is locked or pending review' });
+        }
+      }
+
       const parsedReceiveDate = receiveDate ? new Date(receiveDate) : null;
-      const updatedItem = await ProcurementModel.updateItemStatus(id, status, parsedReceiveDate);
+      // If item is rejected, force receiveDate to null
+      const finalReceiveDate = status === 'REJECTED' ? null : parsedReceiveDate;
+
+      const updatedItem = await ProcurementModel.updateItemStatus(id, status, finalReceiveDate);
       return res.json({ message: `Item status updated to ${status}`, item: updatedItem });
     } catch (error) {
       next(error);
