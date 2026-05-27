@@ -1,0 +1,83 @@
+extends ../../layouts/crud_form.pug
+include ../../components/forms/input.pug
+include ../../components/forms/select.pug
+include ../../components/forms/textarea.pug
+
+block sidebar
+  if sessionUser && sessionUser.userRole === 'ADMIN'
+    include ../../components/sidebars/admin.pug
+  else if sessionUser && sessionUser.userRole === 'KAPRODI'
+    include ../../components/sidebars/kaprodi.pug
+  else if sessionUser && sessionUser.userRole === 'KALAB'
+    include ../../components/sidebars/kepala_lab.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_ADMIN'
+    include ../../components/sidebars/staf_admin.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_LAB'
+    include ../../components/sidebars/staf_lab.pug
+
+block crud_form_title
+  | Catat Log Pemeliharaan Aset
+
+block crud_form_subtitle
+  | Laporkan riwayat pemeliharaan, kalibrasi, perbaikan, dan penggunaan suku cadang/BHP.
+
+block crud_form_fields
+  if currentQuery && currentQuery.error
+    div(class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl flex items-center gap-3 animate-pulse")
+      svg(xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+        path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z")
+      span= currentQuery.error
+
+  - 
+    const inventoryOptions = (inventories || []).map(inv => ({
+      value: inv.id,
+      label: `${inv.name} (${inv.labelNumber || 'Belum Berlabel'})`
+    }));
+    const conditionOptions = [
+      { value: 'GOOD', label: 'Baik (GOOD)' },
+      { value: 'MAINTENANCE', label: 'Dalam Perawatan (MAINTENANCE)' },
+      { value: 'BROKEN', label: 'Rusak (BROKEN)' },
+      { value: 'DISPOSED', label: 'Dibuang/Dihapus (DISPOSED)' }
+    ];
+    const today = new Date().toISOString().split('T')[0];
+
+  div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
+    +selectField("inventoryId", "inventoryId", "Pilih Barang / Aset", inventoryOptions, '', true)
+    
+    +selectField("conditionAfter", "conditionAfter", "Kondisi Setelah Tindakan", conditionOptions, 'GOOD', true)
+    
+    div(class="md:col-span-2")
+      +inputField("maintenanceDate", "maintenanceDate", "Tanggal Tindakan Pemeliharaan", today, "date", "", true)
+    
+    div(class="md:col-span-2")
+      +textareaField("description", "description", "Deskripsi Tindakan & Detail Perbaikan", '', "Jelaskan kerusakan awal, perbaikan yang dilakukan, dan detail solusi teknis...", 4, true)
+    
+    // BHP usages selection
+    div(class="md:col-span-2 space-y-3")
+      label(class="text-sm font-semibold text-slate-800 block") Suku Cadang / BHP yang Digunakan (Opsional)
+      p(class="text-xs text-slate-500") Tentukan jumlah suku cadang atau bahan habis pakai yang dikonsumsi selama tindakan pemeliharaan ini.
+      
+      div(class="max-h-60 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50 p-2")
+        if bhps && bhps.length > 0
+          each bhp, index in bhps
+            div(class="flex items-center justify-between gap-4 p-3 bg-white hover:bg-slate-50/50 rounded-lg transition-colors mb-1 shadow-sm border border-slate-100")
+              div
+                p(class="text-sm font-medium text-slate-900")= bhp.name
+                p(class="text-xs text-slate-500 mt-0.5")= `Stok Tersedia: ${bhp.stock} ${bhp.unit || 'pcs'}`
+              div(class="flex items-center gap-2")
+                input(type="hidden" name=`bhpUsages[${index}][bhpId]` value=bhp.id)
+                input(
+                  type="number" 
+                  name=`bhpUsages[${index}][quantity]` 
+                  min="0" 
+                  max=bhp.stock
+                  placeholder="0" 
+                  class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm font-mono text-center font-semibold text-slate-800"
+                )
+                span(class="text-xs font-semibold text-slate-400 font-mono")= bhp.unit || 'pcs'
+        else
+          div(class="text-center py-6 text-slate-400 text-sm italic bg-white rounded-lg")
+            | Tidak ada data persediaan BHP di ruangan ini.
+
+block crud_form_submit_label
+  | Simpan Log Pemeliharaan

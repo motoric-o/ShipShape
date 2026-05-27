@@ -1,0 +1,43 @@
+extends ../../layouts/crud_form.pug
+include ../../components/forms/input.pug
+include ../../components/forms/select.pug
+
+block sidebar
+  if sessionUser && sessionUser.userRole === 'ADMIN'
+    include ../../components/sidebars/admin.pug
+  else if sessionUser && sessionUser.userRole === 'KAPRODI'
+    include ../../components/sidebars/kaprodi.pug
+  else if sessionUser && sessionUser.userRole === 'KALAB'
+    include ../../components/sidebars/kepala_lab.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_ADMIN'
+    include ../../components/sidebars/staf_admin.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_LAB'
+    include ../../components/sidebars/staf_lab.pug
+
+block crud_form_title
+  = isPut ? 'Ubah Bahan Habis Pakai' : 'Tambah BHP Baru'
+
+block crud_form_subtitle
+  | Masukkan detail informasi persediaan bahan habis pakai di bawah ini.
+
+block crud_form_fields
+  if currentQuery && currentQuery.error
+    div(class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl flex items-center gap-3 animate-pulse")
+      svg(xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+        path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z")
+      span= currentQuery.error
+
+  - 
+    const roomOptions = (rooms || []).map(r => ({ value: r.id, label: r.name }));
+
+  div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
+    +inputField("name", "name", "Nama Barang / BHP", bhp ? bhp.name : '', "text", "Contoh: RJ45 Connectors Cat6", true)
+    
+    +inputField("unit", "unit", "Satuan Persediaan (Unit)", bhp ? bhp.unit : '', "text", "Contoh: pcs, roll, box, pack", true)
+    
+    +inputField("stock", "stock", "Jumlah Stok Habis Pakai", bhp ? bhp.stock : '0', "number", "0", true)
+    
+    +selectField("roomId", "roomId", "Lokasi Ruangan Penyimpanan", roomOptions, bhp ? bhp.roomId : '', true)
+
+block crud_form_submit_label
+  = isPut ? 'Simpan Perubahan' : 'Daftarkan BHP Baru'
