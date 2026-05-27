@@ -1,0 +1,29 @@
+extends ../../layouts/crud_form.pug
+include ../../components/forms/input.pug
+
+block sidebar
+  if sessionUser && sessionUser.userRole === 'ADMIN'
+    include ../../components/sidebars/admin.pug
+  else if sessionUser && sessionUser.userRole === 'KAPRODI'
+    include ../../components/sidebars/kaprodi.pug
+  else if sessionUser && sessionUser.userRole === 'KALAB'
+    include ../../components/sidebars/kepala_lab.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_ADMIN'
+    include ../../components/sidebars/staf_admin.pug
+  else if sessionUser && sessionUser.userRole === 'STAF_LAB'
+    include ../../components/sidebars/staf_lab.pug
+
+block crud_form_title
+  = title || (draft && draft.id ? 'Edit Draf Pengadaan' : 'Buat Draf Pengadaan Baru')
+
+block crud_form_subtitle
+  | Masukkan detail informasi draf pengadaan tahunan di bawah ini.
+
+block crud_form_fields
+  div(class="space-y-4")
+    +inputField("title", "title", "Judul Pengadaan", draft ? draft.title : '', "text", "Contoh: Pengadaan Komputer Lab 2026", true)
+    
+    +inputField("year", "year", "Tahun Anggaran", draft ? draft.year : new Date().getFullYear(), "number", "Contoh: 2026", true)
+
+block crud_form_submit_label
+  | Simpan Draf

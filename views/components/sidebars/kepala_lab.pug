@@ -3,7 +3,7 @@ aside(class="w-64 lg:w-72 h-full bg-white border-r border-slate-200/80 flex flex
     p(class="px-4 text-xs font-bold uppercase tracking-wider text-slate-400 mb-4") Menu Utama
     
     mixin navItem(href, label, iconPath1, iconPath2, activePaths)
-      - var isActive = activePaths.some(p => currentPath === p || (p !== '/' && currentPath && currentPath.startsWith(p + '/')))
+      - var isActive = activePaths.some(p => currentPath === p || (p !== '/' && currentPath && currentPath.startsWith(p + '/') && !(p === '/procurements' && currentPath === '/procurements/new')))
       a(href=href class=`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-green-50 text-green-800 font-semibold border border-green-100/50 shadow-sm' : 'text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900 duration-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] group'}`)
         div(class=`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-green-100 text-green-700' : 'bg-slate-50 text-slate-400 group-hover:bg-white group-hover:text-orange-600 group-hover:shadow-sm'}`)
           svg(class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24")
@@ -14,5 +14,5 @@ aside(class="w-64 lg:w-72 h-full bg-white border-r border-slate-200/80 flex flex
         span= label
 
     +navItem('/kalab', 'Dashboard', 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z', null, ['/kalab'])
-    +navItem('#', 'Buat Draf Pengadaan', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', null, ['/buat-draf'])
-    +navItem('#', 'Riwayat Draf', 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', null, ['/riwayat-draf'])
+    +navItem('/procurements/new', 'Buat Draf Pengadaan', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', null, ['/procurements/new'])
+    +navItem('/procurements', 'Riwayat Draf', 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', null, ['/procurements'])
