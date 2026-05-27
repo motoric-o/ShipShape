@@ -329,7 +329,7 @@ const ProcurementController = {
       const { status } = req.body;
       const reviewedById = req.session.userId;
       const userRole = req.session.userRole;
-      const isApi = req.originalUrl.startsWith('/api');
+      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
 
       if (!status) {
         if (isApi) return res.status(400).json({ error: 'Status is required' });
@@ -427,7 +427,7 @@ const ProcurementController = {
       const { type, name, price, quantity, link, replacedInventoryId } = req.body;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
-      const isApi = req.originalUrl.startsWith('/api');
+      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
 
       const draft = await ProcurementModel.findDraftById(draftId);
       if (!draft) {
@@ -504,7 +504,7 @@ const ProcurementController = {
       const { name, price, quantity, link, replacedInventoryId } = req.body;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
-      const isApi = req.originalUrl.startsWith('/api');
+      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
 
       const item = await ProcurementModel.findItemById(id);
       if (!item) {
@@ -586,7 +586,7 @@ const ProcurementController = {
       const { id } = req.params;
       const { status, receiveDate } = req.body;
       const userRole = req.session.userRole;
-      const isApi = req.originalUrl.startsWith('/api');
+      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
 
       if (!status) {
         if (isApi) return res.status(400).json({ error: 'Status is required' });
@@ -687,7 +687,7 @@ const ProcurementController = {
       const { id } = req.params;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
-      const isApi = req.originalUrl.startsWith('/api');
+      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
 
       const item = await ProcurementModel.findItemById(id);
       if (!item) {

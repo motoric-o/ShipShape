@@ -219,7 +219,7 @@ const BHPController = {
     try {
       const { id } = req.params;
       const { amount } = req.body;
-      const isApi = req.originalUrl.startsWith('/api');
+      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
       if (amount === undefined) {
         if (isApi) return res.status(400).json({ error: 'Adjustment amount is required' });
         return res.redirect(`/bhp?error=Adjustment amount is required`);
