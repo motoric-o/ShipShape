@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `procurement_drafts` MODIFY `status` ENUM('DRAFT', 'PENDING_REVIEW', 'LOCKED', 'APPROVED') NOT NULL DEFAULT 'DRAFT';

@@ -9,6 +9,7 @@ const ProcurementController = {
       const limit = parseInt(req.query.limit) || 10;
       const search = req.query.search || '';
       const status = req.query.status || '';
+      const sortBy = req.query.sortBy || 'latest';
       const year = req.query.year ? parseInt(req.query.year) : undefined;
       const createdById = req.query.createdById ? parseInt(req.query.createdById) : undefined;
 
@@ -23,6 +24,12 @@ const ProcurementController = {
         ...(createdById ? { createdById } : {})
       };
 
+      let orderBy = { createdAt: 'desc' };
+      if (sortBy === 'oldest') orderBy = { createdAt: 'asc' };
+      else if (sortBy === 'names') orderBy = { title: 'asc' };
+      else if (sortBy === 'status') orderBy = { status: 'asc' };
+      else if (sortBy === 'item_amount') orderBy = { items: { _count: 'desc' } };
+
       const [drafts, totalItems] = await Promise.all([
         prisma.procurementDraft.findMany({
           where,
@@ -31,7 +38,7 @@ const ProcurementController = {
             reviewedBy: { select: { id: true, name: true, email: true } },
             items: true
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy,
           skip,
           take: limit,
         }),
@@ -55,6 +62,8 @@ const ProcurementController = {
       res.render('pages/procurements/index', {
         drafts,
         selectedStatus: status,
+        selectedSort: sortBy,
+        currentQuery: req.query,
         selectedYear: year || '',
         sessionUser: req.session,
         searchActionUrl: '/procurements',
@@ -174,8 +183,8 @@ const ProcurementController = {
         }
       }
 
-      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        return res.redirect(`/procurements/${id}?error=Cannot modify a draft that is locked or approved`);
+      if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
+        return res.redirect(`/procurements/${id}?error=Cannot modify a draft that is pending review or approved`);
       }
 
       const updatedData = {};
@@ -218,8 +227,8 @@ const ProcurementController = {
         }
       }
 
-      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        return res.redirect(`/procurements/${id}?error=Cannot delete a draft that is locked or approved`);
+      if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
+        return res.redirect(`/procurements/${id}?error=Cannot delete a draft that is pending review or approved`);
       }
 
       await ProcurementModel.deleteDraft(id);
@@ -297,8 +306,8 @@ const ProcurementController = {
         }
       }
 
-      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        return res.status(400).json({ error: 'Cannot modify a draft that is locked or approved' });
+      if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
+        return res.status(400).json({ error: 'Cannot modify a draft that is pending review or approved' });
       }
 
       const updatedData = {};
@@ -336,7 +345,7 @@ const ProcurementController = {
         return res.redirect(`/procurements/${id}?error=Status is required`);
       }
 
-      const allowedStatuses = ['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'LOCKED'];
+      const allowedStatuses = ['DRAFT', 'PENDING_REVIEW', 'APPROVED'];
       if (!allowedStatuses.includes(status)) {
         if (isApi) return res.status(400).json({ error: 'Invalid status value' });
         return res.redirect(`/procurements/${id}?error=Invalid status value`);
@@ -354,9 +363,9 @@ const ProcurementController = {
           if (isApi) return res.status(403).json({ error: 'You are not authorized to approve/finalize procurement drafts' });
           return res.redirect(`/procurements/${id}?error=You are not authorized to approve/finalize procurement drafts`);
         }
-        if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
-          if (isApi) return res.status(400).json({ error: 'Only locked or pending review drafts can be approved/finalized' });
-          return res.redirect(`/procurements/${id}?error=Only locked or pending review drafts can be approved/finalized`);
+        if (draft.status !== 'PENDING_REVIEW') {
+          if (isApi) return res.status(400).json({ error: 'Only pending review drafts can be approved/finalized' });
+          return res.redirect(`/procurements/${id}?error=Only pending review drafts can be approved/finalized`);
         }
         const hasPendingItems = draft.items.some(item => item.status === 'PENDING');
         if (hasPendingItems) {
@@ -368,18 +377,18 @@ const ProcurementController = {
           if (isApi) return res.status(403).json({ error: 'You are not authorized to reset this draft status' });
           return res.redirect(`/procurements/${id}?error=You are not authorized to reset this draft status`);
         }
-        if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
-          if (isApi) return res.status(400).json({ error: 'Only locked or pending review drafts can be returned to DRAFT status' });
-          return res.redirect(`/procurements/${id}?error=Only locked or pending review drafts can be returned to DRAFT status`);
+        if (draft.status !== 'PENDING_REVIEW') {
+          if (isApi) return res.status(400).json({ error: 'Only pending review drafts can be returned to DRAFT status' });
+          return res.redirect(`/procurements/${id}?error=Only pending review drafts can be returned to DRAFT status`);
         }
-      } else if (status === 'LOCKED' || status === 'PENDING_REVIEW') {
+      } else if (status === 'PENDING_REVIEW') {
         if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN' && draft.createdById !== reviewedById) {
-          if (isApi) return res.status(403).json({ error: 'You are not authorized to lock/submit this draft' });
-          return res.redirect(`/procurements/${id}?error=You are not authorized to lock/submit this draft`);
+          if (isApi) return res.status(403).json({ error: 'You are not authorized to submit this draft' });
+          return res.redirect(`/procurements/${id}?error=You are not authorized to submit this draft`);
         }
         if (draft.status !== 'DRAFT') {
-          if (isApi) return res.status(400).json({ error: 'Only drafts in DRAFT status can be locked or submitted for review' });
-          return res.redirect(`/procurements/${id}?error=Only drafts in DRAFT status can be locked or submitted for review`);
+          if (isApi) return res.status(400).json({ error: 'Only drafts in DRAFT status can be submitted for review' });
+          return res.redirect(`/procurements/${id}?error=Only drafts in DRAFT status can be submitted for review`);
         }
       }
 
@@ -410,8 +419,8 @@ const ProcurementController = {
         }
       }
 
-      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        return res.status(400).json({ error: 'Cannot delete a draft that is locked or approved' });
+      if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
+        return res.status(400).json({ error: 'Cannot delete a draft that is pending review or approved' });
       }
 
       await ProcurementModel.deleteDraft(id);
@@ -442,9 +451,9 @@ const ProcurementController = {
         }
       }
 
-      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        if (isApi) return res.status(400).json({ error: 'Cannot add items to a draft that is locked or approved' });
-        return res.redirect(`/procurements/${draftId}?error=Cannot add items to a draft that is locked or approved`);
+      if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
+        if (isApi) return res.status(400).json({ error: 'Cannot add items to a draft that is pending review or approved' });
+        return res.redirect(`/procurements/${draftId}?error=Cannot add items to a draft that is pending review or approved`);
       }
 
       if (type !== 'INVENTORY' && type !== 'BHP') {
@@ -521,9 +530,9 @@ const ProcurementController = {
         }
       }
 
-      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        if (isApi) return res.status(400).json({ error: 'Cannot update items in a draft that is locked or approved' });
-        return res.redirect(`/procurements/${draftId}?error=Cannot update items in a draft that is locked or approved`);
+      if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
+        if (isApi) return res.status(400).json({ error: 'Cannot update items in a draft that is pending review or approved' });
+        return res.redirect(`/procurements/${draftId}?error=Cannot update items in a draft that is pending review or approved`);
       }
 
       const updatedData = {};
@@ -629,9 +638,9 @@ const ProcurementController = {
           if (isApi) return res.status(403).json({ error: 'Only Kaprodi or Admin can approve/reject procurement items' });
           return res.redirect(`/procurements/${draftId}?error=Only Kaprodi or Admin can approve/reject procurement items`);
         }
-        if (draft.status !== 'LOCKED' && draft.status !== 'PENDING_REVIEW') {
-          if (isApi) return res.status(400).json({ error: 'Items can only be approved/rejected when the draft is locked or pending review' });
-          return res.redirect(`/procurements/${draftId}?error=Items can only be approved/rejected when the draft is locked or pending review`);
+        if (draft.status !== 'PENDING_REVIEW') {
+          if (isApi) return res.status(400).json({ error: 'Items can only be approved/rejected when the draft is pending review' });
+          return res.redirect(`/procurements/${draftId}?error=Items can only be approved/rejected when the draft is pending review`);
         }
       }
 
@@ -704,9 +713,9 @@ const ProcurementController = {
         }
       }
 
-      if (draft.status === 'LOCKED' || draft.status === 'APPROVED') {
-        if (isApi) return res.status(400).json({ error: 'Cannot delete items from a draft that is locked or approved' });
-        return res.redirect(`/procurements/${draftId}?error=Cannot delete items from a draft that is locked or approved`);
+      if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
+        if (isApi) return res.status(400).json({ error: 'Cannot delete items from a draft that is pending review or approved' });
+        return res.redirect(`/procurements/${draftId}?error=Cannot delete items from a draft that is pending review or approved`);
       }
 
       await ProcurementModel.deleteItem(id);

@@ -27,7 +27,9 @@ Sistem mengimplementasikan Kontrol Akses Berbasis Peran (Role-Based Access Contr
 * **Perencanaan Tahunan:** Membuat draf pengadaan barang tahunan (Inventaris & BHP) yang mencakup data:
     * Nama Barang, Harga, Jumlah (Qty), dan Tautan (*Link*) Pembelian.
     * Opsi relasi penggantian aset lama dengan barang baru yang dibeli.
-* **Manajemen Draf:** Mengakses riwayat draf pengadaan. Draf yang berstatus `LOCKED` bersifat *read-only* (tidak dapat diubah).
+* **Manajemen Draf:** Mengakses riwayat draf pengadaan. Draf yang berstatus `PENDING_REVIEW` bersifat *read-only* (tidak dapat diubah).
+* **Tinjau Draf (Read-only):** Melihat rincian draf `PENDING_REVIEW` atau `APPROVED`.
+* **Notifikasi (Opsional):** Menerima notifikasi atau melihat status jika draf ditolak atau disetujui.
 
 ### 👤 Ketua Program Studi (Kaprodi)
 * **Review & Validasi:** Memeriksa draf pengadaan yang diajukan oleh Kepala Laboratorium.

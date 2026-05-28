@@ -13,8 +13,9 @@ block content
           span(class="text-xs font-bold tracking-wide text-slate-600 uppercase") Evaluasi & Ulasan
         h2(class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900") Selamat pagi, Kaprodi
         p(class="text-slate-500 mt-2 text-lg font-medium") Permintaan pengadaan tingkat departemen menunggu ulasan Anda.
-      div(class="flex items-center gap-3")
-        a(href="/procurements" class="px-4 py-2.5 bg-slate-900 rounded-xl text-sm font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-green-700 hover:shadow-green-700/20 transition-all duration-300 hover:-translate-y-0.5") Lihat Ulasan Tertunda
+      div(class="flex flex-wrap items-center gap-3")
+        a(href="/procurements?status=PENDING_REVIEW" class="px-4 py-2.5 bg-slate-900 rounded-xl text-sm font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-green-700 hover:shadow-green-700/20 transition-all duration-300 hover:-translate-y-0.5") Lihat Ulasan Tertunda
+        a(href="/procurements?status=APPROVED" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-300 hover:-translate-y-0.5") Draf Final
     
     //- Fluid Metric Cards Grid
     div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6")
