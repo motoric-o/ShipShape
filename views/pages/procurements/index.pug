@@ -75,9 +75,9 @@ block crud_table_rows
           if draft.status === 'DRAFT'
             span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200") DRAFT
           else if draft.status === 'PENDING_REVIEW'
-            span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 animate-pulse") MENUNGGU REVIEW
+            span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200") MENUNGGU REVIEW
           else if draft.status === 'APPROVED'
-            span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200") DISETUJUI &amp; FINAL
+            span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200") COMPLETED
           else
             span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200")= draft.status
         td(class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium")
