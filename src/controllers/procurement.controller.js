@@ -1,5 +1,24 @@
 const ProcurementModel = require('../models/procurement.model');
 const prisma = require('../config/db');
+const { z } = require('zod');
+
+const draftSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required'),
+  year: z.coerce.number().int().positive('Year must be a positive integer')
+});
+
+const draftUpdateSchema = draftSchema.partial();
+
+const itemSchema = z.object({
+  type: z.enum(['INVENTORY', 'BHP'], { errorMap: () => ({ message: 'Type must be either INVENTORY or BHP' }) }),
+  name: z.string().trim().min(1, 'Name is required'),
+  price: z.coerce.number().nonnegative('Price must be a non-negative number'),
+  quantity: z.coerce.number().int().positive('Quantity must be a positive integer'),
+  link: z.string().trim().nullable().optional().transform(v => v === '' ? null : v),
+  replacedInventoryId: z.any()
+});
+
+const itemUpdateSchema = itemSchema.partial();
 
 const ProcurementController = {
   // --- Web MVC Actions ---
@@ -124,21 +143,19 @@ const ProcurementController = {
 
   async store(req, res, next) {
     try {
-      const { title, year } = req.body;
+      const result = draftSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/procurements/new?error=${encodeURIComponent(errorMsg)}`);
+      }
+      const { title, year } = result.data;
       const createdById = req.session.userId;
-      if (!title || typeof title !== 'string' || title.trim() === '') {
-        return res.redirect('/procurements/new?error=Title is required');
-      }
-      const parsedYear = parseInt(year);
-      if (isNaN(parsedYear) || parsedYear <= 0) {
-        return res.redirect('/procurements/new?error=Year must be a positive integer');
-      }
       if (!createdById) {
         return res.redirect('/login');
       }
       const newDraft = await ProcurementModel.createDraft({
-        title: title.trim(),
-        year: parsedYear,
+        title,
+        year,
         createdById: parseInt(createdById)
       });
       res.redirect(`/procurements/${newDraft.id}`);
@@ -168,7 +185,12 @@ const ProcurementController = {
   async update(req, res, next) {
     const { id } = req.params;
     try {
-      const { title, year } = req.body;
+      const result = draftUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/procurements/${id}/edit?error=${encodeURIComponent(errorMsg)}`);
+      }
+      
       const userRole = req.session.userRole;
       const userId = req.session.userId;
 
@@ -187,22 +209,7 @@ const ProcurementController = {
         return res.redirect(`/procurements/${id}?error=Cannot modify a draft that is pending review or approved`);
       }
 
-      const updatedData = {};
-      if (title !== undefined) {
-        if (typeof title !== 'string' || title.trim() === '') {
-          return res.redirect(`/procurements/${id}/edit?error=Title must be a non-empty string`);
-        }
-        updatedData.title = title.trim();
-      }
-      if (year !== undefined) {
-        const parsedYear = parseInt(year);
-        if (isNaN(parsedYear) || parsedYear <= 0) {
-          return res.redirect(`/procurements/${id}/edit?error=Year must be a positive integer`);
-        }
-        updatedData.year = parsedYear;
-      }
-
-      await ProcurementModel.updateDraft(id, updatedData);
+      await ProcurementModel.updateDraft(id, result.data);
       res.redirect(`/procurements/${id}`);
     } catch (error) {
       console.error('Error updating draft:', error);
@@ -265,21 +272,19 @@ const ProcurementController = {
 
   async createDraft(req, res, next) {
     try {
-      const { title, year } = req.body;
+      const result = draftSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ error: errorMsg });
+      }
+      const { title, year } = result.data;
       const createdById = req.session.userId;
-      if (!title || typeof title !== 'string' || title.trim() === '') {
-        return res.status(400).json({ error: 'Title is required and must be a non-empty string' });
-      }
-      const parsedYear = parseInt(year);
-      if (isNaN(parsedYear) || parsedYear <= 0) {
-        return res.status(400).json({ error: 'Year is required and must be a positive integer' });
-      }
       if (!createdById) {
         return res.status(401).json({ error: 'Authentication session is required' });
       }
       const newDraft = await ProcurementModel.createDraft({
-        title: title.trim(),
-        year: parsedYear,
+        title,
+        year,
         createdById: parseInt(createdById)
       });
       return res.status(201).json({ message: 'Procurement draft created successfully', draft: newDraft });
@@ -291,7 +296,11 @@ const ProcurementController = {
   async updateDraft(req, res, next) {
     try {
       const { id } = req.params;
-      const { title, year } = req.body;
+      const result = draftUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ error: errorMsg });
+      }
       const userRole = req.session.userRole;
       const userId = req.session.userId;
 
@@ -310,22 +319,7 @@ const ProcurementController = {
         return res.status(400).json({ error: 'Cannot modify a draft that is pending review or approved' });
       }
 
-      const updatedData = {};
-      if (title !== undefined) {
-        if (typeof title !== 'string' || title.trim() === '') {
-          return res.status(400).json({ error: 'Title must be a non-empty string' });
-        }
-        updatedData.title = title.trim();
-      }
-      if (year !== undefined) {
-        const parsedYear = parseInt(year);
-        if (isNaN(parsedYear) || parsedYear <= 0) {
-          return res.status(400).json({ error: 'Year must be a positive integer' });
-        }
-        updatedData.year = parsedYear;
-      }
-
-      const updatedDraft = await ProcurementModel.updateDraft(id, updatedData);
+      const updatedDraft = await ProcurementModel.updateDraft(id, result.data);
       return res.json({ message: 'Procurement draft updated successfully', draft: updatedDraft });
     } catch (error) {
       next(error);
@@ -433,10 +427,18 @@ const ProcurementController = {
   async addItem(req, res, next) {
     try {
       const { draftId } = req.params;
-      const { type, name, price, quantity, link, replacedInventoryId } = req.body;
+      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
+      
+      const result = itemSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        if (isApi) return res.status(400).json({ error: errorMsg });
+        return res.redirect(`/procurements/${draftId}?error=${encodeURIComponent(errorMsg)}`);
+      }
+      
+      const { type, name, price, quantity, link, replacedInventoryId } = result.data;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
-      const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
 
       const draft = await ProcurementModel.findDraftById(draftId);
       if (!draft) {
@@ -456,31 +458,12 @@ const ProcurementController = {
         return res.redirect(`/procurements/${draftId}?error=Cannot add items to a draft that is pending review or approved`);
       }
 
-      if (type !== 'INVENTORY' && type !== 'BHP') {
-        if (isApi) return res.status(400).json({ error: 'Type must be either INVENTORY or BHP' });
-        return res.redirect(`/procurements/${draftId}?error=Type must be either INVENTORY or BHP`);
-      }
-      if (!name || typeof name !== 'string' || name.trim() === '') {
-        if (isApi) return res.status(400).json({ error: 'Name is required' });
-        return res.redirect(`/procurements/${draftId}?error=Name is required`);
-      }
-      const parsedPrice = parseFloat(price);
-      if (isNaN(parsedPrice) || parsedPrice < 0) {
-        if (isApi) return res.status(400).json({ error: 'Price must be a non-negative number' });
-        return res.redirect(`/procurements/${draftId}?error=Price must be a non-negative number`);
-      }
-      const parsedQty = parseInt(quantity);
-      if (isNaN(parsedQty) || parsedQty <= 0) {
-        if (isApi) return res.status(400).json({ error: 'Quantity must be a positive integer' });
-        return res.redirect(`/procurements/${draftId}?error=Quantity must be a positive integer`);
-      }
-
       const itemData = {
         type,
-        name: name.trim(),
-        price: parsedPrice,
-        quantity: parsedQty,
-        link: link || null
+        name,
+        price,
+        quantity,
+        link
       };
 
       if (replacedInventoryId !== undefined && replacedInventoryId !== null && replacedInventoryId !== '') {
@@ -510,11 +493,8 @@ const ProcurementController = {
   async updateItem(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, price, quantity, link, replacedInventoryId } = req.body;
-      const userRole = req.session.userRole;
-      const userId = req.session.userId;
       const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
-
+      
       const item = await ProcurementModel.findItemById(id);
       if (!item) {
         if (isApi) return res.status(404).json({ error: 'Procurement item not found' });
@@ -523,6 +503,17 @@ const ProcurementController = {
 
       const draft = item.draft;
       const draftId = draft.id;
+
+      const result = itemUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        if (isApi) return res.status(400).json({ error: errorMsg });
+        return res.redirect(`/procurements/${draftId}?error=${encodeURIComponent(errorMsg)}`);
+      }
+
+      const userRole = req.session.userRole;
+      const userId = req.session.userId;
+
       if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
         if (draft.createdById !== userId) {
           if (isApi) return res.status(403).json({ error: 'You are not authorized to update items in this draft' });
@@ -535,33 +526,10 @@ const ProcurementController = {
         return res.redirect(`/procurements/${draftId}?error=Cannot update items in a draft that is pending review or approved`);
       }
 
-      const updatedData = {};
-      if (name !== undefined) {
-        if (typeof name !== 'string' || name.trim() === '') {
-          if (isApi) return res.status(400).json({ error: 'Name must be a non-empty string' });
-          return res.redirect(`/procurements/${draftId}?error=Name must be a non-empty string`);
-        }
-        updatedData.name = name.trim();
-      }
-      if (price !== undefined) {
-        const parsedPrice = parseFloat(price);
-        if (isNaN(parsedPrice) || parsedPrice < 0) {
-          if (isApi) return res.status(400).json({ error: 'Price must be a non-negative number' });
-          return res.redirect(`/procurements/${draftId}?error=Price must be a non-negative number`);
-        }
-        updatedData.price = parsedPrice;
-      }
-      if (quantity !== undefined) {
-        const parsedQty = parseInt(quantity);
-        if (isNaN(parsedQty) || parsedQty <= 0) {
-          if (isApi) return res.status(400).json({ error: 'Quantity must be a positive integer' });
-          return res.redirect(`/procurements/${draftId}?error=Quantity must be a positive integer`);
-        }
-        updatedData.quantity = parsedQty;
-      }
-      if (link !== undefined) {
-        updatedData.link = link || null;
-      }
+      const updatedData = { ...result.data };
+      
+      // replacedInventoryId validation manually
+      const { replacedInventoryId } = req.body;
       if (replacedInventoryId !== undefined) {
         if (replacedInventoryId === null || replacedInventoryId === '') {
           updatedData.replacedInventoryId = null;

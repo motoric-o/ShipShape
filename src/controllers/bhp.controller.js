@@ -1,5 +1,15 @@
 const BHPModel = require('../models/bhp.model');
 const prisma = require('../config/db');
+const { z } = require('zod');
+
+const bhpSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  stock: z.coerce.number().int().nonnegative('Stock must be a non-negative integer'),
+  unit: z.string().trim().min(1, 'Unit is required'),
+  roomId: z.coerce.number().int().positive('Room is required')
+});
+
+const bhpUpdateSchema = bhpSchema.partial();
 
 const BHPController = {
   // --- Web MVC Actions ---
@@ -89,15 +99,17 @@ const BHPController = {
 
   async store(req, res, next) {
     try {
-      const { name, stock, unit, roomId } = req.body;
-      if (!name || !roomId) {
-        return res.redirect('/bhp/new?error=Name and roomId are required');
+      const result = bhpSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/bhp/new?error=${encodeURIComponent(errorMsg)}`);
       }
+      const { name, stock, unit, roomId } = result.data;
       await BHPModel.create({
         name,
-        stock: stock ? parseInt(stock) : 0,
+        stock,
         unit,
-        roomId: parseInt(roomId)
+        roomId
       });
       res.redirect('/bhp');
     } catch (error) {
@@ -128,15 +140,12 @@ const BHPController = {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, stock, unit, roomId } = req.body;
-      const updatedData = { name, unit };
-      if (stock !== undefined) {
-        updatedData.stock = parseInt(stock);
+      const result = bhpUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/bhp/${id}/edit?error=${encodeURIComponent(errorMsg)}`);
       }
-      if (roomId) {
-        updatedData.roomId = parseInt(roomId);
-      }
-      await BHPModel.update(id, updatedData);
+      await BHPModel.update(id, result.data);
       res.redirect('/bhp');
     } catch (error) {
       console.error('Error updating BHP:', error);
@@ -181,16 +190,12 @@ const BHPController = {
 
   async createBHP(req, res, next) {
     try {
-      const { name, stock, unit, roomId } = req.body;
-      if (!name || !roomId) {
-        return res.status(400).json({ error: 'Name and roomId are required' });
+      const result = bhpSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ error: errorMsg });
       }
-      const newBHP = await BHPModel.create({
-        name,
-        stock: stock ? parseInt(stock) : 0,
-        unit,
-        roomId: parseInt(roomId)
-      });
+      const newBHP = await BHPModel.create(result.data);
       return res.status(201).json({ message: 'BHP item created successfully', bhp: newBHP });
     } catch (error) {
       next(error);
@@ -200,35 +205,32 @@ const BHPController = {
   async updateBHP(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, stock, unit, roomId } = req.body;
-      const updatedData = { name, unit };
-      if (stock !== undefined) {
-        updatedData.stock = parseInt(stock);
+      const result = bhpUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ error: errorMsg });
       }
-      if (roomId) {
-        updatedData.roomId = parseInt(roomId);
-      }
-      const updatedBHP = await BHPModel.update(id, updatedData);
+      const updatedBHP = await BHPModel.update(id, result.data);
       return res.json({ message: 'BHP item updated successfully', bhp: updatedBHP });
     } catch (error) {
       next(error);
     }
   },
 
-  async adjustStock(req, res, next) {
+  async setStock(req, res, next) {
     try {
       const { id } = req.params;
-      const { amount } = req.body;
+      const { stock } = req.body;
       const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
-      if (amount === undefined) {
-        if (isApi) return res.status(400).json({ error: 'Adjustment amount is required' });
-        return res.redirect(`/bhp?error=Adjustment amount is required`);
+      
+      const stockSchema = z.coerce.number().int().nonnegative('Stock must be a non-negative integer');
+      const stockResult = stockSchema.safeParse(stock);
+      if (!stockResult.success) {
+        const errorMsg = stockResult.error.errors.map(e => e.message).join(', ');
+        if (isApi) return res.status(400).json({ error: errorMsg });
+        return res.redirect(`/bhp?error=${encodeURIComponent(errorMsg)}`);
       }
-      const parsedAmount = parseInt(amount);
-      if (isNaN(parsedAmount)) {
-        if (isApi) return res.status(400).json({ error: 'Adjustment amount must be an integer' });
-        return res.redirect(`/bhp?error=Adjustment amount must be an integer`);
-      }
+      const parsedStock = stockResult.data;
 
       const bhp = await BHPModel.findById(id);
       if (!bhp) {
@@ -236,15 +238,9 @@ const BHPController = {
         return res.redirect(`/bhp?error=BHP item not found`);
       }
 
-      if (bhp.stock + parsedAmount < 0) {
-        const errMsg = `Adjustment would result in negative stock. Current stock: ${bhp.stock}`;
-        if (isApi) return res.status(400).json({ error: errMsg });
-        return res.redirect(`/bhp?error=${encodeURIComponent(errMsg)}`);
-      }
-
-      const updatedBHP = await BHPModel.adjustStock(id, parsedAmount);
+      const updatedBHP = await BHPModel.setStock(id, parsedStock);
       if (isApi) {
-        return res.json({ message: 'BHP stock adjusted successfully', bhp: updatedBHP });
+        return res.json({ message: 'BHP stock updated successfully', bhp: updatedBHP });
       }
       res.redirect('/bhp');
     } catch (error) {

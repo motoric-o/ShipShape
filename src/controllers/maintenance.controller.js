@@ -1,5 +1,13 @@
 const MaintenanceModel = require('../models/maintenance.model');
 const prisma = require('../config/db');
+const { z } = require('zod');
+
+const maintenanceSchema = z.object({
+  inventoryId: z.coerce.number().int().positive('Inventory ID is required'),
+  description: z.string().trim().min(1, 'Description is required'),
+  conditionAfter: z.enum(['GOOD', 'MAINTENANCE', 'BROKEN', 'DISPOSED'], { errorMap: () => ({ message: 'Invalid condition' }) }),
+  maintenanceDate: z.string().optional().or(z.literal(''))
+});
 
 const MaintenanceController = {
   // --- Web MVC Actions ---
@@ -117,12 +125,18 @@ const MaintenanceController = {
 
   async store(req, res, next) {
     try {
-      const { inventoryId, description, conditionAfter, maintenanceDate, bhpUsages } = req.body;
+      const result = maintenanceSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/maintenance/new?error=${encodeURIComponent(errorMsg)}`);
+      }
+      const { inventoryId, description, conditionAfter, maintenanceDate } = result.data;
       const performedById = req.session.userId;
-      if (!inventoryId || !conditionAfter || !performedById) {
-        return res.redirect('/maintenance/new?error=inventoryId, conditionAfter, and active session user are required');
+      if (!performedById) {
+        return res.redirect('/login');
       }
 
+      const { bhpUsages } = req.body;
       let parsedBhpUsages = [];
       if (Array.isArray(bhpUsages)) {
         parsedBhpUsages = bhpUsages.map(usage => ({
@@ -141,7 +155,7 @@ const MaintenanceController = {
 
       await MaintenanceModel.createLog(
         {
-          inventoryId: parseInt(inventoryId),
+          inventoryId,
           description,
           conditionAfter,
           performedById,
@@ -193,11 +207,18 @@ const MaintenanceController = {
 
   async createLog(req, res, next) {
     try {
-      const { inventoryId, description, conditionAfter, maintenanceDate, bhpUsages } = req.body;
-      const performedById = req.session.userId;
-      if (!inventoryId || !conditionAfter || !performedById) {
-        return res.status(400).json({ error: 'inventoryId, conditionAfter, and active session user are required' });
+      const result = maintenanceSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ error: errorMsg });
       }
+      const { inventoryId, description, conditionAfter, maintenanceDate } = result.data;
+      const performedById = req.session.userId;
+      if (!performedById) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { bhpUsages } = req.body;
       const parsedBhpUsages = Array.isArray(bhpUsages) ? bhpUsages : [];
       const newLog = await MaintenanceModel.createLog(
         {
@@ -205,7 +226,7 @@ const MaintenanceController = {
           description,
           conditionAfter,
           performedById,
-          maintenanceDate
+          maintenanceDate: maintenanceDate ? new Date(maintenanceDate) : undefined
         },
         parsedBhpUsages
       );

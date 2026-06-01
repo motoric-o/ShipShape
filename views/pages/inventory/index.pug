@@ -106,7 +106,7 @@ block crud_table_rows
           = new Date(item.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })
         td(class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium")
           if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'STAF_LAB' || sessionUser.userRole === 'STAF_ADMIN')
-            div(class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity")
+            div(class="flex items-center justify-end space-x-2")
               a(href=`/inventory/${item.id}/edit` class="text-blue-600 hover:text-blue-900 p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="Ubah")
                 svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor")
                   path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z")

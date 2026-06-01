@@ -1,5 +1,22 @@
 const prisma = require('../config/db');
 const bcrypt = require('bcryptjs');
+const { z } = require('zod');
+
+const createUserSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100),
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  roleId: z.coerce.number().int().positive('Role is required'),
+  isActive: z.any()
+});
+
+const updateUserSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100),
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string().optional().or(z.literal('')),
+  roleId: z.coerce.number().int().positive('Role is required'),
+  isActive: z.any()
+});
 
 const UserController = {
   async index(req, res, next) {
@@ -89,14 +106,27 @@ const UserController = {
 
   async store(req, res, next) {
     try {
-      const { name, email, password, roleId, isActive } = req.body;
+      const result = createUserSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/users/new?error=${encodeURIComponent(errorMsg)}`);
+      }
+      const { name, email, password, roleId, isActive } = result.data;
+
+      const existing = await prisma.users.findUnique({
+        where: { email: email.toLowerCase() }
+      });
+      if (existing) {
+        return res.redirect('/users/new?error=Email address is already in use');
+      }
+
       await prisma.users.create({
         data: {
           name,
-          email,
+          email: email.toLowerCase(),
           password: bcrypt.hashSync(password, 10),
           roleId: parseInt(roleId),
-          isActive: isActive === 'on' || isActive === 'true'
+          isActive: isActive === 'on' || isActive === 'true' || isActive === true
         }
       });
       res.redirect('/users');
@@ -129,12 +159,28 @@ const UserController = {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, email, roleId, isActive, password } = req.body;
+      const result = updateUserSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/users/${id}/edit?error=${encodeURIComponent(errorMsg)}`);
+      }
+      const { name, email, password, roleId, isActive } = result.data;
+
+      const existing = await prisma.users.findFirst({
+        where: {
+          email: email.toLowerCase(),
+          NOT: { id: parseInt(id) }
+        }
+      });
+      if (existing) {
+        return res.redirect(`/users/${id}/edit?error=Email address is already in use`);
+      }
+
       const updateData = {
         name,
-        email,
+        email: email.toLowerCase(),
         roleId: parseInt(roleId),
-        isActive: isActive === 'on' || isActive === 'true'
+        isActive: isActive === 'on' || isActive === 'true' || isActive === true
       };
       if (password && password.trim() !== '') {
         updateData.password = bcrypt.hashSync(password, 10);

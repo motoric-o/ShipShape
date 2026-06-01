@@ -36,13 +36,11 @@ const BHPModel = {
     });
   },
 
-  async adjustStock(id, amount) {
+  async setStock(id, stock) {
     return prisma.bHP.update({
       where: { id: parseInt(id) },
       data: {
-        stock: {
-          increment: parseInt(amount),
-        },
+        stock: parseInt(stock),
       },
     });
   },

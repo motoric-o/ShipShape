@@ -1,5 +1,16 @@
 const InventoryModel = require('../models/inventory.model');
 const prisma = require('../config/db');
+const { z } = require('zod');
+
+const inventorySchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  labelNumber: z.string().trim().nullable().optional().transform(v => v === '' ? null : v),
+  qrCodePhotoPath: z.string().trim().nullable().optional().transform(v => v === '' ? null : v),
+  condition: z.enum(['GOOD', 'MAINTENANCE', 'BROKEN', 'DISPOSED']).optional().default('GOOD'),
+  roomId: z.coerce.number().int().positive('Room is required')
+});
+
+const inventoryUpdateSchema = inventorySchema.partial();
 
 const InventoryController = {
   // --- Web MVC Actions ---
@@ -95,22 +106,24 @@ const InventoryController = {
 
   async store(req, res, next) {
     try {
-      const { name, labelNumber, qrCodePhotoPath, condition, roomId } = req.body;
-      if (!name || !roomId) {
-        return res.redirect('/inventory/new?error=Name and roomId are required');
+      const result = inventorySchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/inventory/new?error=${encodeURIComponent(errorMsg)}`);
       }
-      if (labelNumber && labelNumber.trim() !== '') {
-        const existing = await InventoryModel.findByLabelNumber(labelNumber.trim());
+      const { name, labelNumber, qrCodePhotoPath, condition, roomId } = result.data;
+      if (labelNumber) {
+        const existing = await InventoryModel.findByLabelNumber(labelNumber);
         if (existing) {
           return res.redirect('/inventory/new?error=Label number already exists');
         }
       }
       await InventoryModel.create({
         name,
-        labelNumber: labelNumber ? labelNumber.trim() : null,
+        labelNumber,
         qrCodePhotoPath,
-        condition: condition || 'GOOD',
-        roomId: parseInt(roomId)
+        condition,
+        roomId
       });
       res.redirect('/inventory');
     } catch (error) {
@@ -141,23 +154,19 @@ const InventoryController = {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, labelNumber, qrCodePhotoPath, condition, roomId } = req.body;
-      if (labelNumber && labelNumber.trim() !== '') {
-        const existing = await InventoryModel.findByLabelNumber(labelNumber.trim());
+      const result = inventoryUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/inventory/${id}/edit?error=${encodeURIComponent(errorMsg)}`);
+      }
+      const { name, labelNumber, qrCodePhotoPath, condition, roomId } = result.data;
+      if (labelNumber) {
+        const existing = await InventoryModel.findByLabelNumber(labelNumber);
         if (existing && existing.id !== parseInt(id)) {
           return res.redirect(`/inventory/${id}/edit?error=Label number already exists`);
         }
       }
-      const updatedData = {
-        name,
-        labelNumber: labelNumber ? labelNumber.trim() : null,
-        qrCodePhotoPath,
-        condition
-      };
-      if (roomId) {
-        updatedData.roomId = parseInt(roomId);
-      }
-      await InventoryModel.update(id, updatedData);
+      await InventoryModel.update(id, { name, labelNumber, qrCodePhotoPath, condition, roomId });
       res.redirect('/inventory');
     } catch (error) {
       console.error('Error updating inventory:', error);
@@ -202,23 +211,19 @@ const InventoryController = {
 
   async createInventory(req, res, next) {
     try {
-      const { name, labelNumber, qrCodePhotoPath, condition, roomId } = req.body;
-      if (!name || !roomId) {
-        return res.status(400).json({ error: 'Name and roomId are required' });
+      const result = inventorySchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ error: errorMsg });
       }
-      if (labelNumber && labelNumber.trim() !== '') {
-        const existing = await InventoryModel.findByLabelNumber(labelNumber.trim());
+      const { name, labelNumber, qrCodePhotoPath, condition, roomId } = result.data;
+      if (labelNumber) {
+        const existing = await InventoryModel.findByLabelNumber(labelNumber);
         if (existing) {
           return res.status(400).json({ error: 'Label number already exists' });
         }
       }
-      const newItem = await InventoryModel.create({
-        name,
-        labelNumber: labelNumber ? labelNumber.trim() : null,
-        qrCodePhotoPath,
-        condition,
-        roomId: parseInt(roomId)
-      });
+      const newItem = await InventoryModel.create(result.data);
       return res.status(201).json({ message: 'Inventory item created successfully', item: newItem });
     } catch (error) {
       next(error);
@@ -228,18 +233,19 @@ const InventoryController = {
   async updateInventory(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, labelNumber, qrCodePhotoPath, condition, roomId } = req.body;
-      if (labelNumber && labelNumber.trim() !== '') {
-        const existing = await InventoryModel.findByLabelNumber(labelNumber.trim());
+      const result = inventoryUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ error: errorMsg });
+      }
+      const { labelNumber } = result.data;
+      if (labelNumber) {
+        const existing = await InventoryModel.findByLabelNumber(labelNumber);
         if (existing && existing.id !== parseInt(id)) {
           return res.status(400).json({ error: 'Label number already exists' });
         }
       }
-      const updatedData = { name, labelNumber: labelNumber ? labelNumber.trim() : null, qrCodePhotoPath, condition };
-      if (roomId) {
-        updatedData.roomId = parseInt(roomId);
-      }
-      const updatedItem = await InventoryModel.update(id, updatedData);
+      const updatedItem = await InventoryModel.update(id, result.data);
       return res.json({ message: 'Inventory item updated successfully', item: updatedItem });
     } catch (error) {
       next(error);

@@ -1,4 +1,10 @@
 const prisma = require('../config/db');
+const { z } = require('zod');
+
+const roomSchema = z.object({
+  name: z.string().trim().min(1, 'Nama ruangan wajib diisi').max(100, 'Nama ruangan maksimal 100 karakter'),
+  description: z.string().trim().optional().nullable()
+});
 
 const RoomController = {
   async index(req, res, next) {
@@ -81,7 +87,21 @@ const RoomController = {
 
   async store(req, res, next) {
     try {
-      const { name, description } = req.body;
+      const result = roomSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/rooms/new?error=${encodeURIComponent(errorMsg)}`);
+      }
+      const { name, description } = result.data;
+
+      // Uniqueness check
+      const existing = await prisma.room.findFirst({
+        where: { name: { equals: name } }
+      });
+      if (existing) {
+        return res.redirect('/rooms/new?error=Nama ruangan sudah terdaftar');
+      }
+
       await prisma.room.create({
         data: { name, description }
       });
@@ -112,7 +132,24 @@ const RoomController = {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, description } = req.body;
+      const result = roomSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        return res.redirect(`/rooms/${id}/edit?error=${encodeURIComponent(errorMsg)}`);
+      }
+      const { name, description } = result.data;
+
+      // Uniqueness check excluding current room ID
+      const existing = await prisma.room.findFirst({
+        where: {
+          name: { equals: name },
+          NOT: { id: parseInt(id) }
+        }
+      });
+      if (existing) {
+        return res.redirect(`/rooms/${id}/edit?error=Nama ruangan sudah terdaftar`);
+      }
+
       await prisma.room.update({
         where: { id: parseInt(id) },
         data: { name, description }
