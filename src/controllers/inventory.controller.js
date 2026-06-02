@@ -132,6 +132,49 @@ const InventoryController = {
     }
   },
 
+  async show(req, res, next) {
+    try {
+      const item = await InventoryModel.findById(req.params.id, { includeRoom: true, includeMaintenanceLogs: true });
+      if (!item) return res.redirect('/inventory');
+      res.render('pages/inventory/show', {
+        sessionUser: req.session,
+        item
+      });
+    } catch (error) {
+      console.error(error);
+      res.redirect('/inventory');
+    }
+  },
+
+  async qr(req, res, next) {
+    try {
+      const item = await InventoryModel.findById(req.params.id);
+      if (!item) return res.status(404).send('Not Found');
+      
+      const qrcode = require('qrcode');
+      // Construct absolute URL (assuming http/https and host from request)
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      const url = `${protocol}://${host}/inventory/${item.id}`;
+      
+      const qrImageBuffer = await qrcode.toBuffer(url, {
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 400,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        }
+      });
+      
+      res.setHeader('Content-Type', 'image/png');
+      res.send(qrImageBuffer);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Error generating QR code');
+    }
+  },
+
   async edit(req, res, next) {
     try {
       const item = await InventoryModel.findById(req.params.id);

@@ -66,6 +66,8 @@ router.delete('/rooms/:id', requireAuth, requireRole(['ADMIN']), RoomController.
 router.get('/inventory', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.index);
 router.get('/inventory/new', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.create);
 router.post('/inventory', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.store);
+router.get('/inventory/:id', requireAuth, InventoryController.show);
+router.get('/inventory/:id/qr', requireAuth, InventoryController.qr);
 router.get('/inventory/:id/edit', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.edit);
 router.put('/inventory/:id', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.update);
 router.delete('/inventory/:id', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.destroy);
@@ -80,19 +82,19 @@ router.patch('/bhp/:id/stock', requireAuth, requireRole(['STAF_LAB']), BHPContro
 router.delete('/bhp/:id', requireAuth, requireRole(['STAF_LAB']), BHPController.destroy);
 
 // --- Procurement Routes ---
-router.get('/procurements', requireAuth, requireRole(['KALAB', 'KAPRODI', 'STAF_ADMIN']), ProcurementController.index);
-router.get('/procurements/new', requireAuth, requireRole(['KALAB']), ProcurementController.create);
-router.post('/procurements', requireAuth, requireRole(['KALAB']), ProcurementController.store);
-router.get('/procurements/:id', requireAuth, requireRole(['KALAB', 'KAPRODI', 'STAF_ADMIN']), ProcurementController.show);
-router.get('/procurements/:id/edit', requireAuth, requireRole(['KALAB']), ProcurementController.edit);
-router.put('/procurements/:id', requireAuth, requireRole(['KALAB']), ProcurementController.update);
-router.patch('/procurements/:id/status', requireAuth, requireRole(['KALAB', 'KAPRODI']), ProcurementController.updateDraftStatus);
-router.delete('/procurements/:id', requireAuth, requireRole(['KALAB']), ProcurementController.destroy);
+router.get('/procurements', requireAuth, ProcurementController.index);
+router.get('/procurements/new', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.create);
+router.post('/procurements', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.store);
+router.get('/procurements/:id', requireAuth, ProcurementController.show);
+router.get('/procurements/:id/edit', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.edit);
+router.put('/procurements/:id', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.update);
+router.patch('/procurements/:id/status', requireAuth, requireRole(['ADMIN', 'KAPRODI', 'KALAB', 'STAF_LAB']), ProcurementController.updateDraftStatus);
+router.delete('/procurements/:id', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.destroy);
 
-router.post('/procurements/:draftId/items', requireAuth, requireRole(['KALAB']), ProcurementController.addItem);
-router.put('/procurements/items/:id', requireAuth, requireRole(['KALAB']), ProcurementController.updateItem);
-router.patch('/procurements/items/:id/status', requireAuth, requireRole(['KAPRODI', 'STAF_ADMIN']), ProcurementController.updateItemStatus);
-router.delete('/procurements/items/:id', requireAuth, requireRole(['KALAB']), ProcurementController.deleteItem);
+router.post('/procurements/:draftId/items', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.addItem);
+router.put('/procurements/items/:id', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.updateItem);
+router.patch('/procurements/items/:id/status', requireAuth, requireRole(['ADMIN', 'KALAB', 'KAPRODI', 'STAF_ADMIN']), ProcurementController.updateItemStatus);
+router.delete('/procurements/items/:id', requireAuth, requireRole(['ADMIN', 'KALAB', 'STAF_LAB']), ProcurementController.deleteItem);
 
 // --- Maintenance Routes ---
 router.get('/maintenance', requireAuth, requireRole(['STAF_LAB']), MaintenanceController.index);

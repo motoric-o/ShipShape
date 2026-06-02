@@ -52,9 +52,9 @@ Sistem mengimplementasikan Kontrol Akses Berbasis Peran (Role-Based Access Contr
 
 ### A. Alur Pengadaan & Penerimaan Barang
 1. **Kepala Lab** menyusun draf $\rightarrow$ Status draf: `DRAFT`.
-2. **Kepala Lab** mengunci draf pengajuan $\rightarrow$ Status draf: `LOCKED`.
-3. **Kaprodi** meninjau item per item, memilih setuju/tolak $\rightarrow$ Status draf: `FINALIZED`.
-4. **Staf Admin** memantau draf `FINALIZED` $\rightarrow$ Input logistik penerimaan barang secara bertahap $\rightarrow$ Generasi QR/Barcode & pelabelan fisik.
+2. **Kepala Lab** mengunci draf pengajuan $\rightarrow$ Status draf: `PENDING_REVIEW`.
+3. **Kaprodi** meninjau item per item, memilih setuju/tolak $\rightarrow$ Status draf: `APPROVED`.
+4. **Staf Admin** memantau draf `APPROVED` $\rightarrow$ Input logistik penerimaan barang secara bertahap $\rightarrow$ Generasi QR/Barcode & pelabelan fisik.
 
 ### B. Alur Pemeliharaan Terintegrasi BHP
 * **Staf Lab** membuat Log Maintenance $\rightarrow$ Sistem memeriksa konsumsi BHP $\rightarrow$ Sistem otomatis memotong Stok BHP $\rightarrow$ Sistem memperbarui status kondisi fisik barang inventaris.
