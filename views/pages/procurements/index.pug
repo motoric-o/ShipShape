@@ -19,7 +19,7 @@ block crud_subtitle
   | Kelola usulan draf pengadaan barang tahunan laboratorium.
 
 block crud_create_button
-  if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'STAF_ADMIN' || sessionUser.userRole === 'KALAB' || sessionUser.userRole === 'STAF_LAB')
+  if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'KALAB' || sessionUser.userRole === 'STAF_LAB')
     a(href="/procurements/new" class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors whitespace-nowrap")
       svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor")
         path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4")
@@ -49,8 +49,8 @@ block crud_table_rows
         td(class="px-6 py-4 whitespace-nowrap")
           if draft.status === 'DRAFT'
             span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200") DRAFT
-          else if draft.status === 'PENDING_REVIEW' || draft.status === 'LOCKED'
-            span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 animate-pulse") MENUNGGU REVIEW
+          else if draft.status === 'PENDING_REVIEW'
+            span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200") MENUNGGU REVIEW
           else if draft.status === 'APPROVED'
             span(class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200") DISETUJUI &amp; FINAL
           else
@@ -65,7 +65,7 @@ block crud_table_rows
               span Tinjau
             
             // Edit/Delete for Creator / Staf Admin/Admin
-            if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'STAF_ADMIN' || draft.createdById === sessionUser.userId) && draft.status === 'DRAFT'
+            if sessionUser && (sessionUser.userRole === 'ADMIN' || draft.createdById === sessionUser.userId) && draft.status === 'DRAFT'
               a(href=`/procurements/${draft.id}/edit` class="text-blue-600 hover:text-blue-900 p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="Ubah")
                 svg(xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor")
                   path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z")

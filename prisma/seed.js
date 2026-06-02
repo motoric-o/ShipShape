@@ -562,8 +562,7 @@ async function main() {
   ];
 
   const allDrafts = [draft1, draft2, draft3];
-  const draftStatuses = ['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'LOCKED'];
-
+  const draftStatuses = ['DRAFT', 'PENDING_REVIEW', 'APPROVED'];
   for (let i = 0; i < 40; i++) {
     const titleTemplate = draftTitles[i % draftTitles.length];
     const suffix = i >= draftTitles.length ? ` (Part ${Math.floor(i / draftTitles.length) + 1})` : '';
@@ -700,7 +699,7 @@ async function main() {
     const quantity = Math.floor(Math.random() * 8) + 1;
 
     let status = 'PENDING';
-    if (draft.status === 'APPROVED' || draft.status === 'LOCKED') {
+    if (draft.status === 'APPROVED' || draft.status === 'PENDING_REVIEW') {
       status = Math.random() > 0.15 ? 'APPROVED' : 'REJECTED';
     }
 

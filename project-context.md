@@ -27,7 +27,7 @@ Sistem mengimplementasikan Kontrol Akses Berbasis Peran (Role-Based Access Contr
 * **Perencanaan Tahunan:** Membuat draf pengadaan barang tahunan (Inventaris & BHP) yang mencakup data:
     * Nama Barang, Harga, Jumlah (Qty), dan Tautan (*Link*) Pembelian.
     * Opsi relasi penggantian aset lama dengan barang baru yang dibeli.
-* **Manajemen Draf:** Mengakses riwayat draf pengadaan. Draf yang berstatus `LOCKED` bersifat *read-only* (tidak dapat diubah).
+* **Manajemen Draf:** Mengakses riwayat draf pengadaan. Draf yang berstatus `PENDING_REVIEW` atau `APPROVED` bersifat *read-only* (tidak dapat diubah).
 
 ### 👤 Ketua Program Studi (Kaprodi)
 * **Review & Validasi:** Memeriksa draf pengadaan yang diajukan oleh Kepala Laboratorium.
@@ -50,9 +50,9 @@ Sistem mengimplementasikan Kontrol Akses Berbasis Peran (Role-Based Access Contr
 
 ### A. Alur Pengadaan & Penerimaan Barang
 1. **Kepala Lab** menyusun draf $\rightarrow$ Status draf: `DRAFT`.
-2. **Kepala Lab** mengunci draf pengajuan $\rightarrow$ Status draf: `LOCKED`.
-3. **Kaprodi** meninjau item per item, memilih setuju/tolak $\rightarrow$ Status draf: `FINALIZED`.
-4. **Staf Admin** memantau draf `FINALIZED` $\rightarrow$ Input logistik penerimaan barang secara bertahap $\rightarrow$ Generasi QR/Barcode & pelabelan fisik.
+2. **Kepala Lab** mengunci draf pengajuan $\rightarrow$ Status draf: `PENDING_REVIEW`.
+3. **Kaprodi** meninjau item per item, memilih setuju/tolak $\rightarrow$ Status draf: `APPROVED`.
+4. **Staf Admin** memantau draf `APPROVED` $\rightarrow$ Input logistik penerimaan barang secara bertahap $\rightarrow$ Generasi QR/Barcode & pelabelan fisik.
 
 ### B. Alur Pemeliharaan Terintegrasi BHP
 * **Staf Lab** membuat Log Maintenance $\rightarrow$ Sistem memeriksa konsumsi BHP $\rightarrow$ Sistem otomatis memotong Stok BHP $\rightarrow$ Sistem memperbarui status kondisi fisik barang inventaris.

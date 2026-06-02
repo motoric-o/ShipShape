@@ -46,7 +46,12 @@ block crud_form_fields
     +selectField("condition", "condition", "Kondisi Aset", conditionOptions, item ? item.condition : 'GOOD', true)
     
     div(class="md:col-span-2")
-      +inputField("qrCodePhotoPath", "qrCodePhotoPath", "Path Foto / File QR Code (Opsional)", item ? item.qrCodePhotoPath : '', "text", "Contoh: /img/qr/LAB-NET-PC-001.png")
+      div(class="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3")
+        svg(xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+          path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
+        div
+          h4(class="text-sm font-semibold text-blue-800") Info QR Code
+          p(class="text-xs text-blue-600 mt-1") QR Code untuk barang ini akan dibuat secara otomatis oleh sistem setelah data disimpan. Anda dapat melihat dan mengunduh QR Code tersebut di halaman Detail Aset.
 
 block crud_form_submit_label
   = isPut ? 'Simpan Perubahan' : 'Daftarkan Aset Baru'
