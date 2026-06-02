@@ -1,0 +1,311 @@
+mixin searchableSelectField(id, name, label, options, selectedValue = null, required = false, placeholder = 'Cari...', extraClasses = '')
+  div(class="space-y-2 relative" id=`container-${id}`)
+    label(for=id class="text-sm font-medium text-slate-700")= label
+    
+    //- Hidden input to hold the actual selected value
+    input(type="hidden" id=id name=name value=selectedValue required=required)
+    
+    //- Trigger input display
+    div(class="relative flex items-center")
+      -
+        let inputClasses = `w-full pl-4 pr-10 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors bg-white cursor-text text-sm ${extraClasses}`;
+        if (!inputClasses.includes('py-')) inputClasses += ' py-2.5';
+        
+        if (inputClasses.includes('py-2.5') && !inputClasses.includes('h-')) {
+          inputClasses += ' h-[42px]';
+        } else if (inputClasses.includes('py-2') && !inputClasses.includes('h-')) {
+          inputClasses += ' h-[38px]';
+        }
+      input(
+        type="text"
+        id=`display-${id}`
+        placeholder=placeholder
+        autocomplete="off"
+        class=inputClasses
+      )
+      
+      //- Chevron / Clear Icon (right)
+      div(class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5")
+        button(type="button" id=`clear-${id}` class="text-slate-400 hover:text-slate-600 transition-colors hidden")
+          svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+            path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12")
+        svg(id=`chevron-${id}` xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 pointer-events-none transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+          path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7")
+
+    //- Floating Dropdown List
+    div(
+      id=`dropdown-${id}`
+      class="absolute w-full mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto hidden divide-y divide-slate-100 transition-all scale-95 opacity-0 duration-100 ease-out origin-top"
+    )
+      each opt in options
+        button(
+          type="button"
+          data-value=opt.value
+          data-label=opt.label
+          class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 text-slate-700 hover:text-slate-900 focus:bg-slate-50 focus:outline-none transition-colors flex items-center justify-between group"
+        )
+          span(class="font-medium")= opt.label
+          svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600 hidden group-data-[selected=true]:block" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+            path(stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7")
+
+      div(id=`empty-${id}` class="px-4 py-4 text-center text-sm text-slate-500 italic hidden")
+        | Tidak ada hasil pencarian.
+
+  script.
+    (function() {
+      const containerId = 'container-#{id}';
+      const hiddenInputId = '#{id}';
+      const displayInputId = 'display-#{id}';
+      const dropdownId = 'dropdown-#{id}';
+      const clearBtnId = 'clear-#{id}';
+      const chevronId = 'chevron-#{id}';
+      const emptyStateId = 'empty-#{id}';
+      
+      function init() {
+        const container = document.getElementById(containerId);
+        const hiddenInput = document.getElementById(hiddenInputId);
+        const displayInput = document.getElementById(displayInputId);
+        const dropdown = document.getElementById(dropdownId);
+        const clearBtn = document.getElementById(clearBtnId);
+        const chevron = document.getElementById(chevronId);
+        const emptyState = document.getElementById(emptyStateId);
+        
+        if (!container || !hiddenInput || !displayInput || !dropdown || !clearBtn || !chevron || !emptyState) {
+          setTimeout(init, 50);
+          return;
+        }
+
+        const getOptions = () => Array.from(dropdown.querySelectorAll('button[data-value]'));
+        let selectedVal = hiddenInput.value;
+        let focusedIndex = -1;
+
+        function syncValue() {
+          selectedVal = hiddenInput.value;
+          const options = getOptions();
+          if (selectedVal) {
+            const selectedOpt = options.find(opt => opt.getAttribute('data-value') == selectedVal);
+            if (selectedOpt) {
+              displayInput.value = selectedOpt.getAttribute('data-label');
+              options.forEach(opt => {
+                if (opt.getAttribute('data-value') == selectedVal) {
+                  opt.setAttribute('data-selected', 'true');
+                  opt.querySelector('svg').classList.remove('hidden');
+                } else {
+                  opt.removeAttribute('data-selected');
+                  opt.querySelector('svg').classList.add('hidden');
+                }
+              });
+              clearBtn.classList.remove('hidden');
+              return;
+            }
+          }
+          displayInput.value = '';
+          options.forEach(opt => {
+            opt.removeAttribute('data-selected');
+            opt.querySelector('svg').classList.add('hidden');
+          });
+          clearBtn.classList.add('hidden');
+        }
+
+        syncValue();
+
+        hiddenInput.addEventListener('change', () => {
+          syncValue();
+        });
+
+        function showDropdown() {
+          dropdown.classList.remove('hidden');
+          setTimeout(() => {
+            dropdown.classList.remove('scale-95', 'opacity-0');
+            dropdown.classList.add('scale-100', 'opacity-100');
+          }, 10);
+          chevron.classList.add('rotate-180');
+          filterOptions();
+        }
+
+        function hideDropdown() {
+          dropdown.classList.remove('scale-100', 'opacity-100');
+          dropdown.classList.add('scale-95', 'opacity-0');
+          chevron.classList.remove('rotate-180');
+          setTimeout(() => {
+            dropdown.classList.add('hidden');
+          }, 100);
+          focusedIndex = -1;
+          const options = getOptions();
+          options.forEach(opt => opt.classList.remove('bg-slate-50'));
+        }
+
+        function toggleDropdown() {
+          if (dropdown.classList.contains('hidden')) {
+            showDropdown();
+          } else {
+            hideDropdown();
+          }
+        }
+
+        function filterOptions() {
+          const query = displayInput.value.toLowerCase().trim();
+          let visibleCount = 0;
+          const options = getOptions();
+
+          options.forEach(opt => {
+            const label = opt.getAttribute('data-label').toLowerCase();
+            if (label.includes(query)) {
+              opt.classList.remove('hidden');
+              visibleCount++;
+            } else {
+              opt.classList.add('hidden');
+            }
+          });
+
+          if (visibleCount === 0) {
+            emptyState.classList.remove('hidden');
+          } else {
+            emptyState.classList.add('hidden');
+          }
+        }
+
+        function selectOption(value, label) {
+          hiddenInput.value = value;
+          displayInput.value = label;
+          selectedVal = value;
+          
+          const options = getOptions();
+          options.forEach(opt => {
+            if (opt.getAttribute('data-value') == value) {
+              opt.setAttribute('data-selected', 'true');
+              opt.querySelector('svg').classList.remove('hidden');
+            } else {
+              opt.removeAttribute('data-selected');
+              opt.querySelector('svg').classList.add('hidden');
+            }
+          });
+
+          clearBtn.classList.remove('hidden');
+          hideDropdown();
+          hiddenInput.dispatchEvent(new Event('change'));
+        }
+
+        function clearSelection() {
+          hiddenInput.value = '';
+          displayInput.value = '';
+          selectedVal = '';
+          const options = getOptions();
+          options.forEach(opt => {
+            opt.removeAttribute('data-selected');
+            opt.querySelector('svg').classList.add('hidden');
+          });
+          clearBtn.classList.add('hidden');
+          filterOptions();
+          hiddenInput.dispatchEvent(new Event('change'));
+        }
+
+        displayInput.addEventListener('focus', () => {
+          showDropdown();
+        });
+
+        displayInput.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showDropdown();
+        });
+
+        displayInput.addEventListener('input', () => {
+          showDropdown();
+          filterOptions();
+          if (displayInput.value) {
+            clearBtn.classList.remove('hidden');
+          } else {
+            clearBtn.classList.add('hidden');
+          }
+        });
+
+        clearBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          clearSelection();
+          displayInput.focus();
+        });
+
+        chevron.addEventListener('click', (e) => {
+          e.stopPropagation();
+          displayInput.focus();
+          toggleDropdown();
+        });
+
+        dropdown.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-value]');
+          if (btn) {
+            e.stopPropagation();
+            const val = btn.getAttribute('data-value');
+            const label = btn.getAttribute('data-label');
+            selectOption(val, label);
+          }
+        });
+
+        displayInput.addEventListener('keydown', (e) => {
+          const options = getOptions();
+          const visibleOptions = options.filter(opt => !opt.classList.contains('hidden'));
+          
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (dropdown.classList.contains('hidden')) {
+              showDropdown();
+              return;
+            }
+            if (visibleOptions.length > 0) {
+              focusedIndex = (focusedIndex + 1) % visibleOptions.length;
+              updateFocusedOption(visibleOptions);
+            }
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (dropdown.classList.contains('hidden')) {
+              showDropdown();
+              return;
+            }
+            if (visibleOptions.length > 0) {
+              focusedIndex = (focusedIndex - 1 + visibleOptions.length) % visibleOptions.length;
+              updateFocusedOption(visibleOptions);
+            }
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!dropdown.classList.contains('hidden') && focusedIndex >= 0 && focusedIndex < visibleOptions.length) {
+              const opt = visibleOptions[focusedIndex];
+              selectOption(opt.getAttribute('data-value'), opt.getAttribute('data-label'));
+            }
+          } else if (e.key === 'Escape') {
+            hideDropdown();
+          }
+        });
+
+        function updateFocusedOption(visibleOptions) {
+          const options = getOptions();
+          options.forEach(opt => opt.classList.remove('bg-slate-50'));
+          if (focusedIndex >= 0 && focusedIndex < visibleOptions.length) {
+            const focusedOpt = visibleOptions[focusedIndex];
+            focusedOpt.classList.add('bg-slate-50');
+            focusedOpt.scrollIntoView({ block: 'nearest' });
+          }
+        }
+
+        document.addEventListener('click', (e) => {
+          if (!container.contains(e.target)) {
+            if (selectedVal) {
+              const options = getOptions();
+              const selectedOpt = options.find(opt => opt.getAttribute('data-value') == selectedVal);
+              if (selectedOpt) {
+                displayInput.value = selectedOpt.getAttribute('data-label');
+              }
+            } else {
+              displayInput.value = '';
+              clearBtn.classList.add('hidden');
+            }
+            hideDropdown();
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();

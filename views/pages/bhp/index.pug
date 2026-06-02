@@ -1,4 +1,5 @@
 extends ../../layouts/crud_index.pug
+include ../../components/forms/select.pug
 
 block sidebar
   if sessionUser && sessionUser.userRole === 'ADMIN'
@@ -21,14 +22,12 @@ block crud_subtitle
 block crud_create_button
   div(class="flex flex-wrap items-center gap-3")
     // Room Filter
-    div(class="relative flex items-center")
-      select(name="roomId" class="pl-3 pr-8 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm bg-white cursor-pointer appearance-none min-w-[155px]" onchange="applyFilters(this)")
-        option(value="") Semua Ruangan
-        each r in rooms
-          option(value=r.id selected=(String(selectedRoomId) === String(r.id)))= r.name
-      div(class="absolute right-2.5 pointer-events-none text-slate-400")
-        svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor")
-          path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7")
+    - 
+      const roomFilterOptions = [
+        { value: '', label: 'Semua Ruangan' },
+        ...(rooms || []).map(r => ({ value: r.id, label: r.name }))
+      ]
+    +selectField("roomId", "roomId", null, roomFilterOptions, selectedRoomId || '', false, "py-2 pl-3 pr-10 min-w-[155px]")(onchange="applyFilters(this)")
 
     // Add Button
     if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'STAF_LAB')

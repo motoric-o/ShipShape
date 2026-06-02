@@ -105,6 +105,7 @@ const MaintenanceController = {
 
   async create(req, res, next) {
     try {
+      const selectedInventoryId = req.query.inventoryId ? parseInt(req.query.inventoryId) : undefined;
       const [inventories, bhps] = await Promise.all([
         prisma.inventory.findMany({ orderBy: { name: 'asc' } }),
         prisma.bHP.findMany({ orderBy: { name: 'asc' } })
@@ -112,6 +113,7 @@ const MaintenanceController = {
       res.render('pages/maintenance/form', {
         inventories,
         bhps,
+        selectedInventoryId,
         sessionUser: req.session,
         backUrl: '/maintenance',
         actionUrl: '/maintenance',

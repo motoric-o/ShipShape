@@ -1,4 +1,5 @@
 extends ../../layouts/crud_index.pug
+include ../../components/forms/select.pug
 
 block sidebar
   if sessionUser && sessionUser.userRole === 'ADMIN'
@@ -27,19 +28,25 @@ block crud_search
       input(type="text" name="search" placeholder="Cari draf pengadaan..." value=(pagination && pagination.search ? pagination.search : '') class="pl-9 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm w-full sm:w-64")
     
     //- Status Filter
-    select(name="status" class="py-2 pl-3 pr-8 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm bg-white")
-      option(value="") Semua Status
-      option(value="DRAFT" selected=selectedStatus === 'DRAFT') DRAFT
-      option(value="PENDING_REVIEW" selected=selectedStatus === 'PENDING_REVIEW') PENDING_REVIEW
-      option(value="APPROVED" selected=selectedStatus === 'APPROVED') APPROVED
+    -
+      const statusFilterOptions = [
+        { value: '', label: 'Semua Status' },
+        { value: 'DRAFT', label: 'DRAFT' },
+        { value: 'PENDING_REVIEW', label: 'PENDING_REVIEW' },
+        { value: 'APPROVED', label: 'APPROVED' }
+      ]
+    +selectField("status", "status", null, statusFilterOptions, selectedStatus || '', false, "py-2 pl-3 pr-10 min-w-[140px]")
 
     //- Sort Options
-    select(name="sortBy" class="py-2 pl-3 pr-8 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm bg-white")
-      option(value="latest" selected=selectedSort === 'latest') Terbaru
-      option(value="oldest" selected=selectedSort === 'oldest') Terlama
-      option(value="names" selected=selectedSort === 'names') Nama (A-Z)
-      option(value="status" selected=selectedSort === 'status') Status
-      option(value="item_amount" selected=selectedSort === 'item_amount') Jumlah Barang
+    -
+      const sortFilterOptions = [
+        { value: 'latest', label: 'Terbaru' },
+        { value: 'oldest', label: 'Terlama' },
+        { value: 'names', label: 'Nama (A-Z)' },
+        { value: 'status', label: 'Status' },
+        { value: 'item_amount', label: 'Jumlah Barang' }
+      ]
+    +selectField("sortBy", "sortBy", null, sortFilterOptions, selectedSort || 'latest', false, "py-2 pl-3 pr-10 min-w-[150px]")
 
     button(type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm") Filter
 

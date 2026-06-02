@@ -1,15 +1,237 @@
-mixin selectField(id, name, label, options, selectedValue = null, required = false, extraClasses = '')
-  div(class="space-y-2")
-    label(for=id class="text-sm font-medium text-slate-700")= label
+mixin selectField(id, name, label, options, selectedValue = null, required = false, extraClasses = '', containerClass = '')
+  div(class=`relative ${label ? 'space-y-2' : ''} ${containerClass}` id=`container-${id}`)
+    if label
+      label(for=id class="text-sm font-medium text-slate-700")= label
+    
+    //- Hidden input to hold the actual selected value
+    input(type="hidden" id=id name=name value=selectedValue required=required)&attributes(attributes)
+    
+    //- Trigger button display
     div(class="relative flex items-center")
-      select(
-        id=id
-        name=name
-        required=required
-        class=`w-full pl-4 pr-10 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors bg-white appearance-none cursor-pointer ${extraClasses}`
+      - 
+        let displayVal = 'Pilih opsi...';
+        if (selectedValue !== null && selectedValue !== undefined) {
+          const selOpt = options.find(o => String(o.value) === String(selectedValue));
+          if (selOpt) displayVal = selOpt.label;
+        }
+
+      -
+        let btnClasses = `w-full flex items-center justify-between rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors bg-white text-sm text-slate-900 ${extraClasses}`;
+        if (!btnClasses.includes('py-')) btnClasses += ' py-2.5';
+        if (!btnClasses.includes('pl-')) btnClasses += ' pl-4';
+        if (!btnClasses.includes('pr-')) btnClasses += ' pr-10';
+
+        if (btnClasses.includes('py-2.5') && !btnClasses.includes('h-')) {
+          btnClasses += ' h-[42px]';
+        } else if (btnClasses.includes('py-2') && !btnClasses.includes('h-')) {
+          btnClasses += ' h-[38px]';
+        }
+
+      button(
+        type="button"
+        id=`display-${id}`
+        class=btnClasses
       )
-        each opt in options
-          option(value=opt.value selected=(String(selectedValue) === String(opt.value)))= opt.label
-      div(class="absolute right-3 pointer-events-none text-slate-400")
-        svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+        span(id=`display-text-${id}` class="truncate")= displayVal
+      
+      //- Chevron
+      div(class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none")
+        svg(id=`chevron-${id}` xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor")
           path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7")
+
+    //- Floating Dropdown List
+    div(
+      id=`dropdown-${id}`
+      class="absolute w-full mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto hidden divide-y divide-slate-100 transition-all scale-95 opacity-0 duration-100 ease-out origin-top"
+    )
+      each opt in options
+        button(
+          type="button"
+          data-value=opt.value
+          data-label=opt.label
+          class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 text-slate-700 hover:text-slate-900 focus:bg-slate-50 focus:outline-none transition-colors flex items-center justify-between group"
+        )
+          span(class="font-medium")= opt.label
+          svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600 hidden group-data-[selected=true]:block" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+            path(stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7")
+
+  script.
+    (function() {
+      const containerId = 'container-#{id}';
+      const hiddenInputId = '#{id}';
+      const displayBtnId = 'display-#{id}';
+      const displayTextId = 'display-text-#{id}';
+      const dropdownId = 'dropdown-#{id}';
+      const chevronId = 'chevron-#{id}';
+      
+      function init() {
+        const container = document.getElementById(containerId);
+        const hiddenInput = document.getElementById(hiddenInputId);
+        const displayBtn = document.getElementById(displayBtnId);
+        const displayText = document.getElementById(displayTextId);
+        const dropdown = document.getElementById(dropdownId);
+        const chevron = document.getElementById(chevronId);
+        
+        if (!container || !hiddenInput || !displayBtn || !displayText || !dropdown || !chevron) {
+          setTimeout(init, 50);
+          return;
+        }
+
+        const getOptions = () => Array.from(dropdown.querySelectorAll('button[data-value]'));
+        let selectedVal = hiddenInput.value;
+        let focusedIndex = -1;
+
+        function syncValue() {
+          selectedVal = hiddenInput.value;
+          const options = getOptions();
+          const selectedOpt = options.find(opt => opt.getAttribute('data-value') === selectedVal);
+          if (selectedOpt) {
+            displayText.textContent = selectedOpt.getAttribute('data-label');
+            options.forEach(opt => {
+              if (opt.getAttribute('data-value') === selectedVal) {
+                opt.setAttribute('data-selected', 'true');
+                opt.querySelector('svg').classList.remove('hidden');
+              } else {
+                opt.removeAttribute('data-selected');
+                opt.querySelector('svg').classList.add('hidden');
+              }
+            });
+          } else {
+            displayText.textContent = 'Pilih opsi...';
+            options.forEach(opt => {
+              opt.removeAttribute('data-selected');
+              opt.querySelector('svg').classList.add('hidden');
+            });
+          }
+        }
+
+        syncValue();
+
+        hiddenInput.addEventListener('change', () => {
+          syncValue();
+        });
+
+        function showDropdown() {
+          dropdown.classList.remove('hidden');
+          setTimeout(() => {
+            dropdown.classList.remove('scale-95', 'opacity-0');
+            dropdown.classList.add('scale-100', 'opacity-100');
+          }, 10);
+          chevron.classList.add('rotate-180');
+        }
+
+        function hideDropdown() {
+          dropdown.classList.remove('scale-100', 'opacity-100');
+          dropdown.classList.add('scale-95', 'opacity-0');
+          chevron.classList.remove('rotate-180');
+          setTimeout(() => {
+            dropdown.classList.add('hidden');
+          }, 100);
+          focusedIndex = -1;
+          const options = getOptions();
+          options.forEach(opt => opt.classList.remove('bg-slate-50'));
+        }
+
+        function toggleDropdown() {
+          if (dropdown.classList.contains('hidden')) {
+            showDropdown();
+          } else {
+            hideDropdown();
+          }
+        }
+
+        function selectOption(value, label) {
+          hiddenInput.value = value;
+          displayText.textContent = label;
+          selectedVal = value;
+          
+          const options = getOptions();
+          options.forEach(opt => {
+            if (opt.getAttribute('data-value') == value) {
+              opt.setAttribute('data-selected', 'true');
+              opt.querySelector('svg').classList.remove('hidden');
+            } else {
+              opt.removeAttribute('data-selected');
+              opt.querySelector('svg').classList.add('hidden');
+            }
+          });
+
+          hideDropdown();
+          hiddenInput.dispatchEvent(new Event('change'));
+        }
+
+        displayBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleDropdown();
+        });
+
+        dropdown.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-value]');
+          if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const val = btn.getAttribute('data-value');
+            const label = btn.getAttribute('data-label');
+            selectOption(val, label);
+          }
+        });
+
+        displayBtn.addEventListener('keydown', (e) => {
+          const options = getOptions();
+          
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (dropdown.classList.contains('hidden')) {
+              showDropdown();
+              return;
+            }
+            if (options.length > 0) {
+              focusedIndex = (focusedIndex + 1) % options.length;
+              updateFocusedOption(options);
+            }
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (dropdown.classList.contains('hidden')) {
+              showDropdown();
+              return;
+            }
+            if (options.length > 0) {
+              focusedIndex = (focusedIndex - 1 + options.length) % options.length;
+              updateFocusedOption(options);
+            }
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!dropdown.classList.contains('hidden') && focusedIndex >= 0 && focusedIndex < options.length) {
+              const opt = options[focusedIndex];
+              selectOption(opt.getAttribute('data-value'), opt.getAttribute('data-label'));
+            } else {
+              toggleDropdown();
+            }
+          } else if (e.key === 'Escape') {
+            hideDropdown();
+          }
+        });
+
+        function updateFocusedOption(options) {
+          options.forEach(opt => opt.classList.remove('bg-slate-50'));
+          if (focusedIndex >= 0 && focusedIndex < options.length) {
+            const focusedOpt = options[focusedIndex];
+            focusedOpt.classList.add('bg-slate-50');
+            focusedOpt.scrollIntoView({ block: 'nearest' });
+          }
+        }
+
+        document.addEventListener('click', (e) => {
+          if (!container.contains(e.target)) {
+            hideDropdown();
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();

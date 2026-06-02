@@ -78,7 +78,7 @@ router.get('/bhp/new', requireAuth, requireRole(['STAF_LAB']), BHPController.cre
 router.post('/bhp', requireAuth, requireRole(['STAF_LAB']), BHPController.store);
 router.get('/bhp/:id/edit', requireAuth, requireRole(['STAF_LAB']), BHPController.edit);
 router.put('/bhp/:id', requireAuth, requireRole(['STAF_LAB']), BHPController.update);
-router.patch('/bhp/:id/stock', requireAuth, requireRole(['STAF_LAB']), BHPController.setStock);
+router.patch('/bhp/:id/stock', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.setStock);
 router.delete('/bhp/:id', requireAuth, requireRole(['STAF_LAB']), BHPController.destroy);
 
 // --- Procurement Routes ---

@@ -1,6 +1,15 @@
 mixin inputField(id, name, label, value = '', type = 'text', placeholder = '', required = false, extraClasses = '')
   div(class="space-y-2")
     label(for=id class="text-sm font-medium text-slate-700")= label
+    -
+      let inputClasses = `w-full px-4 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors text-sm ${extraClasses}`;
+      if (!inputClasses.includes('py-')) inputClasses += ' py-2.5';
+      
+      if (inputClasses.includes('py-2.5') && !inputClasses.includes('h-')) {
+        inputClasses += ' h-[42px]';
+      } else if (inputClasses.includes('py-2') && !inputClasses.includes('h-')) {
+        inputClasses += ' h-[38px]';
+      }
     input(
       id=id
       type=type
@@ -8,5 +17,5 @@ mixin inputField(id, name, label, value = '', type = 'text', placeholder = '', r
       value=value
       placeholder=placeholder
       required=required
-      class=`w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors ${extraClasses}`
-    )
+      class=inputClasses
+    )&attributes(attributes)

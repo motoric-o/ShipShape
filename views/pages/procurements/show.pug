@@ -1,4 +1,7 @@
 extends ../../layouts/main.pug
+include ../../components/forms/searchable_select.pug
+include ../../components/forms/select.pug
+include ../../components/forms/input.pug
 
 block sidebar
   if sessionUser && sessionUser.userRole === 'ADMIN'
@@ -153,11 +156,13 @@ block content
               th(class="px-3 py-3 text-center w-28") Status Ulasan
               if sessionUser && (sessionUser.userRole === 'KAPRODI' || sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'STAF_ADMIN')
                 th(class="px-3 py-3 text-center w-40") Aksi / Penerimaan
+              if sessionUser && (sessionUser.userRole === 'ADMIN' || draft.createdById === sessionUser.userId) && draft.status === 'DRAFT'
+                th(class="px-3 py-3 text-center w-36") Aksi
           
           tbody(class="divide-y divide-slate-100 text-sm")
             if draft.items && draft.items.length > 0
               each item in draft.items
-                tr(class="hover:bg-slate-50/50 transition-colors group" id=`item-row-${item.id}` data-item-id=item.id data-item-status=item.status data-item-price=item.price data-item-qty=item.quantity)
+                tr(class="hover:bg-slate-50/50 transition-colors group" id=`item-row-${item.id}` data-item-id=item.id data-item-status=item.status data-item-price=item.price data-item-qty=item.quantity data-item-name=item.name data-item-type=item.type data-item-link=(item.link || "") data-item-replaced=(item.replacedInventoryId || ""))
                   td(class="px-3 py-3")
                     div(class="font-semibold text-slate-800")= item.name
                     div(class="text-xs text-slate-400 mt-0.5") ID: ##{item.id}
@@ -241,6 +246,21 @@ block content
                                   | Terima Barang
                           else
                             span(class="text-xs text-slate-400 italic") -
+                  if sessionUser && (sessionUser.userRole === 'ADMIN' || draft.createdById === sessionUser.userId) && draft.status === 'DRAFT'
+                    td(class="px-3 py-3 text-center whitespace-nowrap text-sm font-medium")
+                      div(class="flex items-center justify-center gap-2")
+                        button(
+                          type="button" 
+                          onclick=`openEditItemModal(${item.id})`
+                          class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all cursor-pointer"
+                        )
+                          | Ubah
+                        form(action=`/procurements/items/${item.id}?_method=DELETE` method="POST" class="inline-block" onsubmit="return confirm('Apakah Anda yakin ingin menghapus item ini?');")
+                          button(
+                            type="submit" 
+                            class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-all cursor-pointer"
+                          )
+                            | Hapus
             else
               tr
                 td(colspan="10" class="px-6 py-8 text-center text-slate-500 bg-white")
@@ -298,36 +318,22 @@ block content
         
         div(class="space-y-4")
           div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
-            div(class="space-y-2")
-              label(for="type" class="text-xs font-semibold text-slate-700") Tipe Item
-              select(name="type" id="type" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
-                option(value="INVENTORY") INVENTARIS (Aset)
-                option(value="BHP") BHP (Bahan Habis Pakai)
-            
-            div(class="space-y-2")
-              label(for="name" class="text-xs font-semibold text-slate-700") Nama Barang
-              input(type="text" name="name" id="name" placeholder="Contoh: Cisco Switch 24p" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+            +selectField("type", "type", "Tipe Item", [{value: 'INVENTORY', label: 'INVENTARIS (Aset)'}, {value: 'BHP', label: 'BHP (Bahan Habis Pakai)'}], 'INVENTORY', true)
+            +inputField("name", "name", "Nama Barang", '', "text", "Contoh: Cisco Switch 24p", true)
 
           div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
-            div(class="space-y-2")
-              label(for="price" class="text-xs font-semibold text-slate-700") Harga Satuan (Rp)
-              input(type="number" name="price" id="price" min="0" placeholder="150000" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
-            
-            div(class="space-y-2")
-              label(for="quantity" class="text-xs font-semibold text-slate-700") Kuantitas (Jumlah)
-              input(type="number" name="quantity" id="quantity" min="1" placeholder="1" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+            +inputField("price", "price", "Harga Satuan (Rp)", '', "number", "150000", true)(min="0")
+            +inputField("quantity", "quantity", "Kuantitas (Jumlah)", '', "number", "1", true)(min="1")
 
-          div(class="space-y-2")
-            label(for="link" class="text-xs font-semibold text-slate-700") Link Produk / Pembelian (Opsional)
-            input(type="url" name="link" id="link" placeholder="https://tokopedia.com/..." class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none")
+          +inputField("link", "link", "Link Produk / Pembelian (Opsional)", '', "url", "https://tokopedia.com/...", false)
 
+          -
+            const replacedInventoryOptions = (inventoryItems || []).map(item => ({
+              value: item.id,
+              label: `${item.name} (${item.labelNumber || 'Belum Berlabel'})`
+            }));
           div(class="space-y-2")
-            label(for="replacedInventoryId" class="text-xs font-semibold text-slate-700") Aset yang Digantikan (Opsional)
-            select(name="replacedInventoryId" id="replacedInventoryId" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none")
-              option(value="") -- Pilih Aset (Jika Mengganti Aset Rusak) --
-              if inventoryItems
-                each item in inventoryItems
-                  option(value=item.id)= `${item.name} (${item.labelNumber || 'Belum Berlabel'})`
+            +searchableSelectField("replacedInventoryId", "replacedInventoryId", "Aset yang Digantikan (Opsional)", replacedInventoryOptions, '', false, "-- Pilih Aset (Jika Mengganti Aset Rusak) --")
 
         div(class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100")
           button(type="button" onclick="closeAddItemModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-700 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer") Batal
@@ -346,36 +352,17 @@ block content
         
         div(class="space-y-4")
           div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
-            div(class="space-y-2")
-              label(for="edit-type" class="text-xs font-semibold text-slate-700") Tipe Item
-              select(name="type" id="edit-type" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
-                option(value="INVENTORY") INVENTARIS (Aset)
-                option(value="BHP") BHP (Bahan Habis Pakai)
-            
-            div(class="space-y-2")
-              label(for="edit-name" class="text-xs font-semibold text-slate-700") Nama Barang
-              input(type="text" name="name" id="edit-name" placeholder="Contoh: Cisco Switch 24p" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+            +selectField("edit-type", "type", "Tipe Item", [{value: 'INVENTORY', label: 'INVENTARIS (Aset)'}, {value: 'BHP', label: 'BHP (Bahan Habis Pakai)'}], 'INVENTORY', true)
+            +inputField("edit-name", "name", "Nama Barang", '', "text", "Contoh: Cisco Switch 24p", true)
 
           div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
-            div(class="space-y-2")
-              label(for="edit-price" class="text-xs font-semibold text-slate-700") Harga Satuan (Rp)
-              input(type="number" name="price" id="edit-price" min="0" placeholder="150000" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
-            
-            div(class="space-y-2")
-              label(for="edit-quantity" class="text-xs font-semibold text-slate-700") Kuantitas (Jumlah)
-              input(type="number" name="quantity" id="edit-quantity" min="1" placeholder="1" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+            +inputField("edit-price", "price", "Harga Satuan (Rp)", '', "number", "150000", true)(min="0")
+            +inputField("edit-quantity", "quantity", "Kuantitas (Jumlah)", '', "number", "1", true)(min="1")
+
+          +inputField("edit-link", "link", "Link Produk / Pembelian (Opsional)", '', "url", "https://tokopedia.com/...", false)
 
           div(class="space-y-2")
-            label(for="edit-link" class="text-xs font-semibold text-slate-700") Link Produk / Pembelian (Opsional)
-            input(type="url" name="link" id="edit-link" placeholder="https://tokopedia.com/..." class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none")
-
-          div(class="space-y-2")
-            label(for="edit-replacedInventoryId" class="text-xs font-semibold text-slate-700") Aset yang Digantikan (Opsional)
-            select(name="replacedInventoryId" id="edit-replacedInventoryId" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none")
-              option(value="") -- Pilih Aset (Jika Mengganti Aset Rusak) --
-              if inventoryItems
-                each item in inventoryItems
-                  option(value=item.id)= `${item.name} (${item.labelNumber || 'Belum Berlabel'})`
+            +searchableSelectField("edit-replacedInventoryId", "replacedInventoryId", "Aset yang Digantikan (Opsional)", replacedInventoryOptions, '', false, "-- Pilih Aset (Jika Mengganti Aset Rusak) --")
 
         div(class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100")
           button(type="button" onclick="closeEditItemModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-700 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer") Batal
@@ -808,6 +795,11 @@ block content
     }
 
     function openAddItemModal() {
+      const replacedInput = document.getElementById('replacedInventoryId');
+      if (replacedInput) {
+        replacedInput.value = '';
+        replacedInput.dispatchEvent(new Event('change'));
+      }
       document.getElementById('add-item-modal').classList.remove('hidden');
     }
 
@@ -830,7 +822,12 @@ block content
       document.getElementById('edit-price').value = price;
       document.getElementById('edit-quantity').value = quantity;
       document.getElementById('edit-link').value = link;
-      document.getElementById('edit-replacedInventoryId').value = replacedId;
+
+      const replacedInput = document.getElementById('edit-replacedInventoryId');
+      if (replacedInput) {
+        replacedInput.value = replacedId;
+        replacedInput.dispatchEvent(new Event('change'));
+      }
 
       document.getElementById('edit-item-modal').classList.remove('hidden');
     }
