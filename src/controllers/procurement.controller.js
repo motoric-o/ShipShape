@@ -199,10 +199,8 @@ const ProcurementController = {
         return res.redirect('/procurements');
       }
 
-      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-        if (draft.createdById !== userId) {
-          return res.redirect(`/procurements/${id}?error=You are not authorized to update this draft`);
-        }
+      if (userRole !== 'KALAB' || draft.createdById !== userId) {
+        return res.redirect(`/procurements/${id}?error=You are not authorized to update this draft`);
       }
 
       if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
@@ -228,10 +226,8 @@ const ProcurementController = {
         return res.redirect('/procurements');
       }
 
-      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-        if (draft.createdById !== userId) {
-          return res.redirect(`/procurements/${id}?error=You are not authorized to delete this draft`);
-        }
+      if (userRole !== 'KALAB' || draft.createdById !== userId) {
+        return res.redirect(`/procurements/${id}?error=You are not authorized to delete this draft`);
       }
 
       if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
@@ -309,10 +305,8 @@ const ProcurementController = {
         return res.status(404).json({ error: 'Procurement draft not found' });
       }
 
-      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-        if (draft.createdById !== userId) {
-          return res.status(403).json({ error: 'You are not authorized to update this draft' });
-        }
+      if (userRole !== 'KALAB' || draft.createdById !== userId) {
+        return res.status(403).json({ error: 'You are not authorized to update this draft' });
       }
 
       if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
@@ -353,7 +347,7 @@ const ProcurementController = {
 
       // Check transitions and roles
       if (status === 'APPROVED') {
-        if (userRole !== 'ADMIN' && userRole !== 'KAPRODI') {
+        if (userRole !== 'KAPRODI') {
           if (isApi) return res.status(403).json({ error: 'You are not authorized to approve/finalize procurement drafts' });
           return res.redirect(`/procurements/${id}?error=You are not authorized to approve/finalize procurement drafts`);
         }
@@ -367,7 +361,7 @@ const ProcurementController = {
           return res.redirect(`/procurements/${id}?error=Cannot finalize draft. All items must be either APPROVED or REJECTED.`);
         }
       } else if (status === 'DRAFT') {
-        if (userRole !== 'ADMIN' && userRole !== 'KAPRODI' && draft.createdById !== reviewedById) {
+        if (userRole !== 'KAPRODI' && (userRole !== 'KALAB' || draft.createdById !== reviewedById)) {
           if (isApi) return res.status(403).json({ error: 'You are not authorized to reset this draft status' });
           return res.redirect(`/procurements/${id}?error=You are not authorized to reset this draft status`);
         }
@@ -376,7 +370,7 @@ const ProcurementController = {
           return res.redirect(`/procurements/${id}?error=Only pending review drafts can be returned to DRAFT status`);
         }
       } else if (status === 'PENDING_REVIEW') {
-        if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN' && draft.createdById !== reviewedById) {
+        if (userRole !== 'KALAB' || draft.createdById !== reviewedById) {
           if (isApi) return res.status(403).json({ error: 'You are not authorized to submit this draft' });
           return res.redirect(`/procurements/${id}?error=You are not authorized to submit this draft`);
         }
@@ -407,10 +401,8 @@ const ProcurementController = {
         return res.status(404).json({ error: 'Procurement draft not found' });
       }
 
-      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-        if (draft.createdById !== userId) {
-          return res.status(403).json({ error: 'You are not authorized to delete this draft' });
-        }
+      if (userRole !== 'KALAB' || draft.createdById !== userId) {
+        return res.status(403).json({ error: 'You are not authorized to delete this draft' });
       }
 
       if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
@@ -446,11 +438,9 @@ const ProcurementController = {
         return res.redirect(`/procurements?error=Procurement draft not found`);
       }
 
-      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-        if (draft.createdById !== userId) {
-          if (isApi) return res.status(403).json({ error: 'You are not authorized to add items to this draft' });
-          return res.redirect(`/procurements/${draftId}?error=You are not authorized to add items to this draft`);
-        }
+      if (userRole !== 'KALAB' || draft.createdById !== userId) {
+        if (isApi) return res.status(403).json({ error: 'You are not authorized to add items to this draft' });
+        return res.redirect(`/procurements/${draftId}?error=You are not authorized to add items to this draft`);
       }
 
       if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
@@ -514,11 +504,9 @@ const ProcurementController = {
       const userRole = req.session.userRole;
       const userId = req.session.userId;
 
-      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-        if (draft.createdById !== userId) {
-          if (isApi) return res.status(403).json({ error: 'You are not authorized to update items in this draft' });
-          return res.redirect(`/procurements/${draftId}?error=You are not authorized to update items in this draft`);
-        }
+      if (userRole !== 'KALAB' || draft.createdById !== userId) {
+        if (isApi) return res.status(403).json({ error: 'You are not authorized to update items in this draft' });
+        return res.redirect(`/procurements/${draftId}?error=You are not authorized to update items in this draft`);
       }
 
       if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {
@@ -587,9 +575,9 @@ const ProcurementController = {
 
       // Case 1: Recording receiveDate (receipt logistics)
       if (receiveDate !== undefined && receiveDate !== null && receiveDate !== '') {
-        if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-          if (isApi) return res.status(403).json({ error: 'Only Staf Admin or Admin can record item receipts' });
-          return res.redirect(`/procurements/${draftId}?error=Only Staf Admin or Admin can record item receipts`);
+        if (userRole !== 'STAF_ADMIN') {
+          if (isApi) return res.status(403).json({ error: 'Only Staf Admin can record item receipts' });
+          return res.redirect(`/procurements/${draftId}?error=Only Staf Admin can record item receipts`);
         }
         if (draft.status !== 'APPROVED') {
           if (isApi) return res.status(400).json({ error: 'Items can only be received after the draft is finalized and approved' });
@@ -602,9 +590,9 @@ const ProcurementController = {
       } 
       // Case 2: Approving or Rejecting items (Kaprodi review)
       else {
-        if (userRole !== 'ADMIN' && userRole !== 'KAPRODI') {
-          if (isApi) return res.status(403).json({ error: 'Only Kaprodi or Admin can approve/reject procurement items' });
-          return res.redirect(`/procurements/${draftId}?error=Only Kaprodi or Admin can approve/reject procurement items`);
+        if (userRole !== 'KAPRODI') {
+          if (isApi) return res.status(403).json({ error: 'Only Kaprodi can approve/reject procurement items' });
+          return res.redirect(`/procurements/${draftId}?error=Only Kaprodi can approve/reject procurement items`);
         }
         if (draft.status !== 'PENDING_REVIEW') {
           if (isApi) return res.status(400).json({ error: 'Items can only be approved/rejected when the draft is pending review' });
@@ -674,11 +662,9 @@ const ProcurementController = {
 
       const draft = item.draft;
       const draftId = draft.id;
-      if (userRole !== 'ADMIN' && userRole !== 'STAF_ADMIN') {
-        if (draft.createdById !== userId) {
-          if (isApi) return res.status(403).json({ error: 'You are not authorized to delete items from this draft' });
-          return res.redirect(`/procurements/${draftId}?error=You are not authorized to delete items from this draft`);
-        }
+      if (userRole !== 'KALAB' || draft.createdById !== userId) {
+        if (isApi) return res.status(403).json({ error: 'You are not authorized to delete items from this draft' });
+        return res.redirect(`/procurements/${draftId}?error=You are not authorized to delete items from this draft`);
       }
 
       if (draft.status === 'PENDING_REVIEW' || draft.status === 'APPROVED') {

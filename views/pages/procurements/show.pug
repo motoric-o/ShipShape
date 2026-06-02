@@ -133,7 +133,7 @@ block content
             span#table-total-count= totalItems
             |  Total Barang
           
-          if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'STAF_ADMIN' || draft.createdById === sessionUser.userId) && draft.status === 'DRAFT'
+          if sessionUser && sessionUser.userRole === 'KALAB' && draft.createdById === sessionUser.userId && draft.status === 'DRAFT'
             button(type="button" onclick="openAddItemModal()" class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5")
               svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor")
                 path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4")
@@ -151,13 +151,15 @@ block content
               th(class="px-6 py-4 min-w-[200px]") Catatan Penggantian
               th(class="px-6 py-4 whitespace-nowrap") Link Toko
               th(class="px-6 py-4 text-center w-40 whitespace-nowrap") Status Ulasan
-              if sessionUser && (sessionUser.userRole === 'KAPRODI' || sessionUser.userRole === 'ADMIN')
+              if sessionUser && sessionUser.userRole === 'KAPRODI'
                 th(class="px-6 py-4 text-center w-56 whitespace-nowrap") Aksi Keputusan
+              if sessionUser && sessionUser.userRole === 'KALAB' && draft.createdById === sessionUser.userId && draft.status === 'DRAFT'
+                th(class="px-6 py-4 text-center w-36 whitespace-nowrap") Aksi
           
           tbody(class="divide-y divide-slate-100 text-sm")
             if draft.items && draft.items.length > 0
               each item in draft.items
-                tr(class="hover:bg-slate-50/50 transition-colors group" id=`item-row-${item.id}` data-item-id=item.id data-item-status=item.status data-item-price=item.price data-item-qty=item.quantity)
+                tr(class="hover:bg-slate-50/50 transition-colors group" id=`item-row-${item.id}` data-item-id=item.id data-item-status=item.status data-item-price=item.price data-item-qty=item.quantity data-item-name=item.name data-item-type=item.type data-item-link=(item.link || "") data-item-replaced=(item.replacedInventoryId || ""))
                   td(class="px-6 py-4")
                     div(class="font-semibold text-slate-800")= item.name
                     div(class="text-xs text-slate-400 mt-0.5") ID: ##{item.id}
@@ -198,7 +200,7 @@ block content
                     span(class=`status-pill inline-flex justify-center w-32 items-center px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${item.status === 'APPROVED' ? 'bg-green-50 text-green-700 border-green-200' : (item.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200')}`)
                       = item.status === 'APPROVED' ? 'DISETUJUI' : (item.status === 'REJECTED' ? 'DITOLAK' : 'PENDING')
                   
-                  if sessionUser && (sessionUser.userRole === 'KAPRODI' || sessionUser.userRole === 'ADMIN')
+                  if sessionUser && sessionUser.userRole === 'KAPRODI'
                     td(class="px-6 py-4 text-center whitespace-nowrap")
                       div(class="flex items-center justify-center gap-1.5 btn-decision-group")
                         //- Approve Button
@@ -222,13 +224,32 @@ block content
                           svg(xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor")
                             path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12")
                           | Tolak
+
+                  if sessionUser && sessionUser.userRole === 'KALAB' && draft.createdById === sessionUser.userId && draft.status === 'DRAFT'
+                    td(class="px-6 py-4 text-center whitespace-nowrap")
+                      div(class="flex items-center justify-center gap-1.5")
+                        //- Edit Button
+                        button(
+                          type="button" 
+                          onclick=`openEditItemModal(${item.id})`
+                          class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all cursor-pointer"
+                        )
+                          | Ubah
+
+                        //- Delete Button
+                        form(action=`/procurements/items/${item.id}?_method=DELETE` method="POST" class="inline-block" onsubmit="return confirm('Apakah Anda yakin ingin menghapus item ini?');")
+                          button(
+                            type="submit" 
+                            class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-all cursor-pointer"
+                          )
+                            | Hapus
             else
               tr
-                td(colspan="9" class="px-6 py-8 text-center text-slate-500 bg-white")
+                td(colspan="10" class="px-6 py-8 text-center text-slate-500 bg-white")
                   p Tidak ada item barang di dalam draf pengadaan ini.
 
-    //- Bottom Submission Banner for KALAB / Staf Lab / Creator
-    if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'KALAB' || sessionUser.userRole === 'STAF_LAB' || draft.createdById === sessionUser.userId) && draft.status === 'DRAFT'
+    //- Bottom Submission Banner for KALAB (Creator)
+    if sessionUser && sessionUser.userRole === 'KALAB' && draft.createdById === sessionUser.userId && draft.status === 'DRAFT'
       div#submission-box(class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6")
         div(class="space-y-1.5")
           h3(class="text-base font-bold text-slate-900") Ajukan Draf Pengadaan
@@ -247,7 +268,7 @@ block content
                 span Ajukan &amp; Kunci Draf
 
     //- Bottom Decision/Finalization Banner for Kaprodi
-    if sessionUser && (sessionUser.userRole === 'KAPRODI' || sessionUser.userRole === 'ADMIN')
+    if sessionUser && sessionUser.userRole === 'KAPRODI'
       div#finalization-box(class=`bg-white border p-6 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6 transition-all ${draft.status === 'APPROVED' ? 'border-green-200 bg-green-50/10' : 'border-slate-200'}`)
         div(class="space-y-1.5")
           h3(class="text-base font-bold text-slate-900") Finalisasi Seluruh Draf Pengadaan
@@ -313,6 +334,54 @@ block content
         div(class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100")
           button(type="button" onclick="closeAddItemModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-700 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer") Batal
           button(type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 active:scale-98 text-white rounded-xl text-xs font-bold shadow-md shadow-green-600/10 transition-all duration-200 cursor-pointer") Simpan Item
+
+  //- 0b. Edit Item Modal
+  div#edit-item-modal(class="hidden fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true")
+    div(class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-all duration-300 animate-backdrop-fade" aria-hidden="true" onclick="closeEditItemModal()")
+    div(class="fixed inset-0 z-50 flex items-center justify-center p-4")
+      form#edit-item-form(method="POST" class="relative bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 md:p-8 max-w-lg w-full animate-modal-enter flex flex-col space-y-4")
+        input(type="hidden" name="_method" value="PUT")
+        h3(class="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2")
+          svg(xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+            path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z")
+          | Ubah Item Pengadaan
+        
+        div(class="space-y-4")
+          div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
+            div(class="space-y-2")
+              label(for="edit-type" class="text-xs font-semibold text-slate-700") Tipe Item
+              select(name="type" id="edit-type" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+                option(value="INVENTORY") INVENTARIS (Aset)
+                option(value="BHP") BHP (Bahan Habis Pakai)
+            
+            div(class="space-y-2")
+              label(for="edit-name" class="text-xs font-semibold text-slate-700") Nama Barang
+              input(type="text" name="name" id="edit-name" placeholder="Contoh: Cisco Switch 24p" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+
+          div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
+            div(class="space-y-2")
+              label(for="edit-price" class="text-xs font-semibold text-slate-700") Harga Satuan (Rp)
+              input(type="number" name="price" id="edit-price" min="0" placeholder="150000" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+            
+            div(class="space-y-2")
+              label(for="edit-quantity" class="text-xs font-semibold text-slate-700") Kuantitas (Jumlah)
+              input(type="number" name="quantity" id="edit-quantity" min="1" placeholder="1" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none" required)
+
+          div(class="space-y-2")
+            label(for="edit-link" class="text-xs font-semibold text-slate-700") Link Produk / Pembelian (Opsional)
+            input(type="url" name="link" id="edit-link" placeholder="https://tokopedia.com/..." class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none")
+
+          div(class="space-y-2")
+            label(for="edit-replacedInventoryId" class="text-xs font-semibold text-slate-700") Aset yang Digantikan (Opsional)
+            select(name="replacedInventoryId" id="edit-replacedInventoryId" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none")
+              option(value="") -- Pilih Aset (Jika Mengganti Aset Rusak) --
+              if inventoryItems
+                each item in inventoryItems
+                  option(value=item.id)= `${item.name} (${item.labelNumber || 'Belum Berlabel'})`
+
+        div(class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100")
+          button(type="button" onclick="closeEditItemModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-700 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer") Batal
+          button(type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 active:scale-98 text-white rounded-xl text-xs font-bold shadow-md shadow-green-600/10 transition-all duration-200 cursor-pointer") Simpan Perubahan
 
   //- 1. Confirmation Modal
   div#finalize-modal(class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true")
@@ -694,4 +763,28 @@ block content
 
     function closeAddItemModal() {
       document.getElementById('add-item-modal').classList.add('hidden');
+    }
+
+    function openEditItemModal(itemId) {
+      const row = document.getElementById(`item-row-${itemId}`);
+      const name = row.dataset.itemName;
+      const type = row.dataset.itemType;
+      const price = row.dataset.itemPrice;
+      const quantity = row.dataset.itemQty;
+      const link = row.dataset.itemLink;
+      const replacedId = row.dataset.itemReplaced;
+
+      document.getElementById('edit-item-form').action = `/procurements/items/${itemId}?_method=PUT`;
+      document.getElementById('edit-name').value = name;
+      document.getElementById('edit-type').value = type;
+      document.getElementById('edit-price').value = price;
+      document.getElementById('edit-quantity').value = quantity;
+      document.getElementById('edit-link').value = link;
+      document.getElementById('edit-replacedInventoryId').value = replacedId;
+
+      document.getElementById('edit-item-modal').classList.remove('hidden');
+    }
+
+    function closeEditItemModal() {
+      document.getElementById('edit-item-modal').classList.add('hidden');
     }
