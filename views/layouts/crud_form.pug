@@ -15,7 +15,7 @@ block content
         p(class="text-sm text-slate-500 mt-1")
           block crud_form_subtitle
     
-    form(action=actionUrl method="POST" class="space-y-6 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-200" id=formId || "crud-form" onsubmit=onSubmitJs || "")
+    form(action=actionUrl method="POST" enctype=formEnctype class="space-y-6 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-200" id=formId || "crud-form" onsubmit=onSubmitJs || "")
       if isPut
         input(type="hidden" name="_method" value="PUT")
       

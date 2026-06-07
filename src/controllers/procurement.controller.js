@@ -14,8 +14,9 @@ const itemSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   price: z.coerce.number().nonnegative('Price must be a non-negative number'),
   quantity: z.coerce.number().int().positive('Quantity must be a positive integer'),
-  link: z.string().trim().nullable().optional().transform(v => v === '' ? null : v),
-  replacedInventoryId: z.any()
+  link: z.string({ message: 'Product link is required' }).trim().min(1, 'Product link is required').url('Product link must be a valid URL'),
+  replacedInventoryId: z.any().optional(),
+  roomId: z.coerce.number().int().positive().nullable().optional()
 });
 
 const itemUpdateSchema = itemSchema.partial();
@@ -145,7 +146,7 @@ const ProcurementController = {
     try {
       const result = draftSchema.safeParse(req.body);
       if (!result.success) {
-        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        const errorMsg = result.error.issues.map(e => e.message).join(', ');
         return res.redirect(`/procurements/new?error=${encodeURIComponent(errorMsg)}`);
       }
       const { title, year } = result.data;
@@ -187,7 +188,7 @@ const ProcurementController = {
     try {
       const result = draftUpdateSchema.safeParse(req.body);
       if (!result.success) {
-        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        const errorMsg = result.error.issues.map(e => e.message).join(', ');
         return res.redirect(`/procurements/${id}/edit?error=${encodeURIComponent(errorMsg)}`);
       }
 
@@ -285,7 +286,7 @@ const ProcurementController = {
     try {
       const result = draftSchema.safeParse(req.body);
       if (!result.success) {
-        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        const errorMsg = result.error.issues.map(e => e.message).join(', ');
         return res.status(400).json({ error: errorMsg });
       }
       const { title, year } = result.data;
@@ -309,7 +310,7 @@ const ProcurementController = {
       const { id } = req.params;
       const result = draftUpdateSchema.safeParse(req.body);
       if (!result.success) {
-        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        const errorMsg = result.error.issues.map(e => e.message).join(', ');
         return res.status(400).json({ error: errorMsg });
       }
       const userRole = req.session.userRole;
@@ -462,12 +463,12 @@ const ProcurementController = {
 
       const result = itemSchema.safeParse(req.body);
       if (!result.success) {
-        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        const errorMsg = result.error.issues.map(e => e.message).join(', ');
         if (isApi) return res.status(400).json({ error: errorMsg });
         return res.redirect(`/procurements/${draftId}?error=${encodeURIComponent(errorMsg)}`);
       }
 
-      const { type, name, price, quantity, link, replacedInventoryId } = result.data;
+      const { type, name, price, quantity, link, replacedInventoryId, roomId } = result.data;
       const userRole = req.session.userRole;
       const userId = req.session.userId;
 
@@ -513,6 +514,18 @@ const ProcurementController = {
         quantity,
         link
       };
+
+      if (roomId !== undefined && roomId !== null && roomId !== '') {
+        const rId = parseInt(roomId);
+        if (!isNaN(rId)) {
+          const roomObj = await prisma.room.findUnique({ where: { id: rId } });
+          if (!roomObj) {
+            if (isApi) return res.status(400).json({ error: 'Room not found' });
+            return res.redirect(`/procurements/${draftId}?error=Room not found`);
+          }
+          itemData.roomId = rId;
+        }
+      }
 
       if (replacedInventoryId !== undefined && replacedInventoryId !== null && replacedInventoryId !== '') {
         const invId = parseInt(replacedInventoryId);
@@ -566,7 +579,7 @@ const ProcurementController = {
 
       const result = itemUpdateSchema.safeParse(req.body);
       if (!result.success) {
-        const errorMsg = result.error.errors.map(e => e.message).join(', ');
+        const errorMsg = result.error.issues.map(e => e.message).join(', ');
         if (isApi) return res.status(400).json({ error: errorMsg });
         return res.redirect(`/procurements/${draftId}?error=${encodeURIComponent(errorMsg)}`);
       }
@@ -574,7 +587,7 @@ const ProcurementController = {
       const updatedData = { ...result.data };
 
       // replacedInventoryId validation manually
-      const { replacedInventoryId } = req.body;
+      const { replacedInventoryId, roomId } = req.body;
       if (replacedInventoryId !== undefined) {
         if (replacedInventoryId === null || replacedInventoryId === '') {
           updatedData.replacedInventoryId = null;
@@ -590,6 +603,22 @@ const ProcurementController = {
             return res.redirect(`/procurements/${draftId}?error=Replaced inventory item not found`);
           }
           updatedData.replacedInventoryId = invId;
+        }
+      }
+
+      if (roomId !== undefined) {
+        if (roomId === null || roomId === '') {
+          updatedData.roomId = null;
+        } else {
+          const rId = parseInt(roomId);
+          if (!isNaN(rId)) {
+            const roomObj = await prisma.room.findUnique({ where: { id: rId } });
+            if (!roomObj) {
+              if (isApi) return res.status(400).json({ error: 'Room not found' });
+              return res.redirect(`/procurements/${draftId}?error=Room not found`);
+            }
+            updatedData.roomId = rId;
+          }
         }
       }
 
@@ -665,8 +694,12 @@ const ProcurementController = {
 
       // Automatic asset registration if newly received and is of type INVENTORY
       if (isNewlyReceived && item.type === 'INVENTORY') {
-        let roomId = null;
-        if (item.replacedInventoryId) {
+        let roomId = item.roomId;
+        if (roomId) {
+          roomId = parseInt(roomId);
+        }
+
+        if (!roomId && item.replacedInventoryId) {
           const replaced = await prisma.inventory.findUnique({
             where: { id: item.replacedInventoryId }
           });
@@ -680,19 +713,18 @@ const ProcurementController = {
           roomId = defaultRoom ? defaultRoom.id : 1;
         }
 
-        const promises = [];
+        const InventoryController = require('./inventory.controller');
         for (let i = 0; i < item.quantity; i++) {
-          promises.push(
-            prisma.inventory.create({
-              data: {
-                name: item.name,
-                condition: 'GOOD',
-                roomId: roomId
-              }
-            })
-          );
+          const labelNumber = await InventoryController.generateLabelNumber(item.name, roomId);
+          await prisma.inventory.create({
+            data: {
+              name: item.name,
+              labelNumber,
+              condition: 'GOOD',
+              roomId: roomId
+            }
+          });
         }
-        await Promise.all(promises);
       }
 
       if (isApi) {

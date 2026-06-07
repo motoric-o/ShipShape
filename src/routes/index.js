@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const DashboardController = require('../controllers/dashboard.controller');
 const UserController = require('../controllers/user.controller');
@@ -9,6 +12,38 @@ const InventoryController = require('../controllers/inventory.controller');
 const BHPController = require('../controllers/bhp.controller');
 const ProcurementController = require('../controllers/procurement.controller');
 const MaintenanceController = require('../controllers/maintenance.controller');
+
+// Ensure public/uploads directory exists
+const uploadsDir = path.join(__dirname, '../../public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Multer storage configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif|svg/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'));
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // MVC Web Middlewares
 const { requireWebAuth: requireAuth, requireWebRole: requireRole } = require('../middleware/auth.middleware');
@@ -63,23 +98,23 @@ router.put('/rooms/:id', requireAuth, requireRole(['ADMIN']), RoomController.upd
 router.delete('/rooms/:id', requireAuth, requireRole(['ADMIN']), RoomController.destroy);
 
 // --- Inventory Routes ---
-router.get('/inventory', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.index);
-router.get('/inventory/new', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.create);
-router.post('/inventory', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.store);
+router.get('/inventory', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), InventoryController.index);
+router.get('/inventory/new', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), InventoryController.create);
+router.post('/inventory', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), upload.single('qrCodePhoto'), InventoryController.store);
 router.get('/inventory/:id', requireAuth, InventoryController.show);
 router.get('/inventory/:id/qr', requireAuth, InventoryController.qr);
-router.get('/inventory/:id/edit', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.edit);
-router.put('/inventory/:id', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.update);
-router.delete('/inventory/:id', requireAuth, requireRole(['STAF_ADMIN']), InventoryController.destroy);
+router.get('/inventory/:id/edit', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), InventoryController.edit);
+router.put('/inventory/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), upload.single('qrCodePhoto'), InventoryController.update);
+router.delete('/inventory/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), InventoryController.destroy);
 
 // --- BHP Routes ---
-router.get('/bhp', requireAuth, requireRole(['STAF_LAB']), BHPController.index);
-router.get('/bhp/new', requireAuth, requireRole(['STAF_LAB']), BHPController.create);
-router.post('/bhp', requireAuth, requireRole(['STAF_LAB']), BHPController.store);
-router.get('/bhp/:id/edit', requireAuth, requireRole(['STAF_LAB']), BHPController.edit);
-router.put('/bhp/:id', requireAuth, requireRole(['STAF_LAB']), BHPController.update);
-router.patch('/bhp/:id/stock', requireAuth, requireRole(['ADMIN', 'STAF_LAB']), BHPController.setStock);
-router.delete('/bhp/:id', requireAuth, requireRole(['STAF_LAB']), BHPController.destroy);
+router.get('/bhp', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.index);
+router.get('/bhp/new', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.create);
+router.post('/bhp', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.store);
+router.get('/bhp/:id/edit', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.edit);
+router.put('/bhp/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.update);
+router.patch('/bhp/:id/stock', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.setStock);
+router.delete('/bhp/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.destroy);
 
 // --- Procurement Routes ---
 router.get('/procurements', requireAuth, ProcurementController.index);

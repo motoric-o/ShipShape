@@ -54,15 +54,16 @@ model Users {
 }
 
 model Room {
-  id          Int         @id @default(autoincrement())
-  name        String
-  description String?     @db.Text
+  id               Int               @id @default(autoincrement())
+  name             String
+  description      String?           @db.Text
   
-  inventories Inventory[]
-  bhps        BHP[]
+  inventories      Inventory[]
+  bhps             BHP[]
+  procurementItems ProcurementItem[]
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@map("rooms")
 }
@@ -163,6 +164,9 @@ model ProcurementItem {
   // Optional, if replacing an existing inventory item
   replacedInventoryId Int?
   replacedInventory   Inventory?        @relation("ReplacedInventory", fields: [replacedInventoryId], references: [id])
+
+  roomId              Int?
+  room                Room?             @relation(fields: [roomId], references: [id])
 
   status              ItemStatus        @default(PENDING)
   receiveDate         DateTime?

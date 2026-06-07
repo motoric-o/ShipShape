@@ -3,6 +3,7 @@ include ../../components/forms/input.pug
 include ../../components/forms/select.pug
 
 block sidebar
+  - formEnctype = "multipart/form-data"
   if sessionUser && sessionUser.userRole === 'ADMIN'
     include ../../components/sidebars/admin.pug
   else if sessionUser && sessionUser.userRole === 'KAPRODI'
@@ -39,11 +40,29 @@ block crud_form_fields
   div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
     +inputField("name", "name", "Nama Barang / Aset", item ? item.name : '', "text", "Contoh: Lenovo ThinkCentre M70q Gen 4", true)
     
-    +inputField("labelNumber", "labelNumber", "Nomor Label / Kode Aset (Opsional)", item ? item.labelNumber : '', "text", "Contoh: LAB-NET-PC-001")
+    if isPut
+      +inputField("labelNumber", "labelNumber", "Nomor Label / Kode Aset", item ? item.labelNumber : '', "text", "")(disabled=true class="bg-slate-100 cursor-not-allowed text-slate-500")
     
     +selectField("roomId", "roomId", "Lokasi Ruangan", roomOptions, item ? item.roomId : '', true)
     
     +selectField("condition", "condition", "Kondisi Aset", conditionOptions, item ? item.condition : 'GOOD', true)
+    
+    div(class="md:col-span-2 space-y-2")
+      label(for="qrCodePhoto" class="text-sm font-medium text-slate-700 block") Unggah QR Code Manual (Gambar)
+      input(
+        id="qrCodePhoto"
+        type="file"
+        name="qrCodePhoto"
+        accept="image/*"
+        class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-colors text-sm"
+      )
+      p(class="text-xs text-slate-500") Format gambar yang didukung: JPEG, JPG, PNG, GIF, SVG. Ukuran maksimal 5MB.
+      if item && item.qrCodePhotoPath
+        div(class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-4 w-fit")
+          img(src=item.qrCodePhotoPath class="w-16 h-16 object-contain rounded border border-slate-200 bg-white" alt="QR Code Manual")
+          div
+            p(class="text-xs font-semibold text-slate-700") QR Code Manual Saat Ini
+            p(class="text-xs text-slate-500 mt-0.5") Anda dapat mengunggah file baru untuk menggantinya.
     
     div(class="md:col-span-2")
       div(class="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3")
