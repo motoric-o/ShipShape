@@ -108,13 +108,13 @@ router.put('/inventory/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF
 router.delete('/inventory/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), InventoryController.destroy);
 
 // --- BHP Routes ---
-router.get('/bhp', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.index);
-router.get('/bhp/new', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.create);
-router.post('/bhp', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.store);
-router.get('/bhp/:id/edit', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.edit);
-router.put('/bhp/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.update);
-router.patch('/bhp/:id/stock', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.setStock);
-router.delete('/bhp/:id', requireAuth, requireRole(['KAPRODI', 'KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.destroy);
+router.get('/bhp', requireAuth, requireRole(['KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.index);
+router.get('/bhp/new', requireAuth, requireRole(['KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.create);
+router.post('/bhp', requireAuth, requireRole(['KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.store);
+router.get('/bhp/:id/edit', requireAuth, requireRole(['KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.edit);
+router.put('/bhp/:id', requireAuth, requireRole(['KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.update);
+router.patch('/bhp/:id/stock', requireAuth, requireRole(['KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.setStock);
+router.delete('/bhp/:id', requireAuth, requireRole(['KALAB', 'STAF_ADMIN', 'STAF_LAB']), BHPController.destroy);
 
 // --- Procurement Routes ---
 router.get('/procurements', requireAuth, ProcurementController.index);

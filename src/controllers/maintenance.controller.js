@@ -18,18 +18,24 @@ const MaintenanceController = {
       const search = req.query.search || '';
       const inventoryId = req.query.inventoryId ? parseInt(req.query.inventoryId) : undefined;
       const performedById = req.query.performedById ? parseInt(req.query.performedById) : undefined;
+      const condition = req.query.condition || '';
 
       const skip = (page - 1) * limit;
 
       const where = {
         ...(search.trim() !== '' ? {
-          description: { contains: search }
+          OR: [
+            { description: { contains: search } },
+            { inventory: { name: { contains: search } } },
+            { inventory: { labelNumber: { contains: search } } }
+          ]
         } : {}),
         ...(inventoryId ? { inventoryId } : {}),
-        ...(performedById ? { performedById } : {})
+        ...(performedById ? { performedById } : {}),
+        ...(condition ? { conditionAfter: condition } : {})
       };
 
-      const [logs, totalItems] = await Promise.all([
+      const [logs, totalItems, inventories] = await Promise.all([
         prisma.maintenanceLog.findMany({
           where,
           include: {
@@ -45,7 +51,8 @@ const MaintenanceController = {
           skip,
           take: limit,
         }),
-        prisma.maintenanceLog.count({ where })
+        prisma.maintenanceLog.count({ where }),
+        prisma.inventory.findMany({ orderBy: { name: 'asc' } })
       ]);
 
       const totalPages = Math.ceil(totalItems / limit);
@@ -64,6 +71,9 @@ const MaintenanceController = {
 
       res.render('pages/maintenance/index', {
         logs,
+        inventories,
+        selectedInventoryId: inventoryId || '',
+        selectedCondition: condition,
         sessionUser: req.session,
         searchActionUrl: '/maintenance',
         searchPlaceholder: 'Cari log pemeliharaan...',

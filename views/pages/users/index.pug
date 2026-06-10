@@ -1,4 +1,5 @@
 extends ../../layouts/crud_index.pug
+include ../../components/forms/select.pug
 
 block sidebar
   if sessionUser && sessionUser.userRole === 'ADMIN'
@@ -19,10 +20,41 @@ block crud_subtitle
   | Kelola data pengguna, peran, dan akses sistem.
 
 block crud_create_button
-  a(href="/users/new" class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors whitespace-nowrap")
-    svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor")
-      path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4")
-    | Tambah User
+  div(class="flex flex-wrap items-center gap-3")
+    // Role Filter
+    - 
+      const roleFilterOptions = [
+        { value: '', label: 'Semua Peran' },
+        ...(roles || []).map(r => ({ value: r.id, label: r.description || r.name }))
+      ]
+    +selectField("roleId", "roleId", null, roleFilterOptions, selectedRoleId || '', false, "py-2 pl-3 pr-10 min-w-[155px]")(onchange="applyFilters(this)")
+
+    // Status Filter
+    - 
+      const statusFilterOptions = [
+        { value: '', label: 'Semua Status' },
+        { value: 'ACTIVE', label: 'Aktif' },
+        { value: 'INACTIVE', label: 'Tidak Aktif' }
+      ]
+    +selectField("status", "status", null, statusFilterOptions, selectedStatus || '', false, "py-2 pl-3 pr-10 min-w-[145px]")(onchange="applyFilters(this)")
+
+    // Add User Button
+    a(href="/users/new" class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors whitespace-nowrap")
+      svg(xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+        path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4")
+      | Tambah User
+
+  script.
+    function applyFilters(el) {
+      const url = new URL(window.location.href);
+      if (el.value) {
+        url.searchParams.set(el.name, el.value);
+      } else {
+        url.searchParams.delete(el.name);
+      }
+      url.searchParams.delete('page'); // Reset to page 1 on filter change
+      window.location.href = url.pathname + url.search;
+    }
 
 block crud_table_headers
   th(class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider") Nama

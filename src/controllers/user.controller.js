@@ -24,7 +24,9 @@ const UserController = {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const search = req.query.search || '';
-      
+      const roleId = req.query.roleId ? parseInt(req.query.roleId) : undefined;
+      const status = req.query.status || '';
+
       const skip = (page - 1) * limit;
 
       const where = {
@@ -34,10 +36,13 @@ const UserController = {
             { name: { contains: search } },
             { email: { contains: search } }
           ]
-        } : {})
+        } : {}),
+        ...(roleId ? { roleId } : {}),
+        ...(status === 'ACTIVE' ? { isActive: true } : {}),
+        ...(status === 'INACTIVE' ? { isActive: false } : {})
       };
 
-      const [users, totalItems] = await Promise.all([
+      const [users, totalItems, roles] = await Promise.all([
         prisma.users.findMany({
           where,
           include: { role: true },
@@ -45,7 +50,8 @@ const UserController = {
           skip,
           take: limit,
         }),
-        prisma.users.count({ where })
+        prisma.users.count({ where }),
+        prisma.role.findMany({ orderBy: { name: 'asc' } })
       ]);
 
       const totalPages = Math.ceil(totalItems / limit);
@@ -65,6 +71,9 @@ const UserController = {
 
       res.render('pages/users/index', {
         users,
+        roles,
+        selectedRoleId: roleId || '',
+        selectedStatus: status,
         sessionUser: req.session,
         searchActionUrl: '/users',
         searchPlaceholder: 'Cari pengguna...',

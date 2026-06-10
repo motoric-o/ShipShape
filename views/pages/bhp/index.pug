@@ -29,6 +29,16 @@ block crud_create_button
       ]
     +selectField("roomId", "roomId", null, roomFilterOptions, selectedRoomId || '', false, "py-2 pl-3 pr-10 min-w-[155px]")(onchange="applyFilters(this)")
 
+    // Stock Status Filter
+    - 
+      const statusFilterOptions = [
+        { value: '', label: 'Semua Status Stok' },
+        { value: 'EMPTY', label: 'Habis / Kosong' },
+        { value: 'LOW', label: 'Stok Minim (<= 5)' },
+        { value: 'OK', label: 'Stok Cukup (> 5)' }
+      ]
+    +selectField("status", "status", null, statusFilterOptions, selectedStatus || '', false, "py-2 pl-3 pr-10 min-w-[170px]")(onchange="applyFilters(this)")
+
     // Add Button
     if sessionUser && (sessionUser.userRole === 'ADMIN' || sessionUser.userRole === 'STAF_LAB')
       a(href="/bhp/new" class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors whitespace-nowrap")

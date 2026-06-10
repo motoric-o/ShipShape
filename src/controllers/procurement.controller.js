@@ -37,7 +37,10 @@ const ProcurementController = {
 
       const where = {
         ...(search.trim() !== '' ? {
-          title: { contains: search }
+          OR: [
+            { title: { contains: search } },
+            { createdBy: { name: { contains: search } } }
+          ]
         } : {}),
         ...(status.trim() !== '' ? { status } : {}),
         ...(year ? { year } : {}),
