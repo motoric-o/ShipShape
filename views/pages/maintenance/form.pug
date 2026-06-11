@@ -30,22 +30,90 @@ block crud_form_fields
       span= currentQuery.error
 
   - 
-    const inventoryOptions = (inventories || []).map(inv => ({
-      value: inv.id,
-      label: `${inv.name} (${inv.labelNumber || 'Belum Berlabel'})`
+    const roomOptions = (rooms || []).map(r => ({
+      value: r.id,
+      label: r.name
     }));
-    const conditionOptions = [
-      { value: 'GOOD', label: 'Baik (GOOD)' },
-      { value: 'MAINTENANCE', label: 'Dalam Perawatan (MAINTENANCE)' },
-      { value: 'BROKEN', label: 'Rusak (BROKEN)' },
-      { value: 'DISPOSED', label: 'Dibuang/Dihapus (DISPOSED)' }
-    ];
     const today = new Date().toISOString().split('T')[0];
 
   div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
-    +searchableSelectField("inventoryId", "inventoryId", "Pilih Barang / Aset", inventoryOptions, selectedInventoryId || '', true, "Cari barang / aset...")
+    div(class="md:col-span-2")
+      +selectField("roomId", "roomId", "Pilih Ruangan", roomOptions, selectedRoomId || '', true)
     
-    +selectField("conditionAfter", "conditionAfter", "Kondisi Setelah Tindakan", conditionOptions, 'GOOD', true)
+    // Assets List Container
+    div(class="md:col-span-2 space-y-3 hidden" id="assets-container")
+      div
+        label(class="text-sm font-semibold text-slate-800 block") Daftar Aset dalam Ruangan
+        p(class="text-xs text-slate-500") Pilih aset yang dilakukan pemeliharaan dan perbarui kondisinya.
+      
+      div(class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm")
+        // Header
+        div(class="grid grid-cols-12 gap-4 bg-slate-50 p-4 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider")
+          div(class="col-span-6 flex items-center") Aset / Barang
+          div(class="col-span-3 text-center") Kondisi Saat Ini
+          div(class="col-span-3 text-center") Kondisi Setelah Pemeliharaan
+        
+        // Asset Rows
+        div(class="divide-y divide-slate-100 max-h-96 overflow-y-auto" id="assets-list")
+          if inventories && inventories.length > 0
+            each asset, index in inventories
+              div(class="asset-row grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50/50 transition-colors hidden" data-room-id=asset.roomId data-asset-id=asset.id)
+                // Col 1: Checkbox & Name
+                div(class="col-span-6 flex items-center gap-3")
+                  input(
+                    type="checkbox"
+                    id=`assets-checked-${index}`
+                    name=`assets[${index}][checked]`
+                    class="h-4.5 w-4.5 rounded border-slate-300 text-green-600 focus:ring-green-500/50 transition-colors cursor-pointer"
+                    data-asset-index=index
+                  )
+                  input(
+                    type="hidden"
+                    name=`assets[${index}][id]`
+                    value=asset.id
+                  )
+                  label(for=`assets-checked-${index}` class="text-sm font-medium text-slate-800 cursor-pointer select-none")
+                    span(class="font-semibold block text-slate-900")= asset.name
+                    if asset.labelNumber
+                      span(class="text-xs text-slate-500 block mt-0.5 font-mono bg-slate-100 px-1.5 py-0.5 rounded w-max")= asset.labelNumber
+                    else
+                      span(class="text-xs text-slate-400 block mt-0.5 italic") Belum Berlabel
+
+                // Col 2: Current Condition (Disabled Select)
+                div(class="col-span-3")
+                  div(class="relative")
+                    select(
+                      disabled=true
+                      class="block w-full rounded-lg border border-slate-200 bg-slate-50 pl-3 pr-8 py-1.5 text-xs text-slate-500 cursor-not-allowed font-medium appearance-none"
+                    )
+                      option(value="GOOD" selected=asset.condition === 'GOOD') Baik (GOOD)
+                      option(value="MAINTENANCE" selected=asset.condition === 'MAINTENANCE') Perawatan (MAINTENANCE)
+                      option(value="BROKEN" selected=asset.condition === 'BROKEN') Rusak (BROKEN)
+                      option(value="DISPOSED" selected=asset.condition === 'DISPOSED') Dihapus (DISPOSED)
+                    div(class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-slate-300")
+                      svg(xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+                        path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7")
+
+                // Col 3: After Condition
+                div(class="col-span-3")
+                  div(class="relative")
+                    select(
+                      name=`assets[${index}][conditionAfter]`
+                      id=`assets-after-${index}`
+                      disabled=true
+                      class="asset-after-select block w-full rounded-lg border border-slate-300 bg-white pl-3 pr-8 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 font-medium transition-all opacity-50 cursor-not-allowed appearance-none"
+                    )
+                      option(value="GOOD" selected=asset.condition === 'GOOD') Baik (GOOD)
+                      option(value="MAINTENANCE" selected=asset.condition === 'MAINTENANCE') Perawatan (MAINTENANCE)
+                      option(value="BROKEN" selected=asset.condition === 'BROKEN') Rusak (BROKEN)
+                      option(value="DISPOSED" selected=asset.condition === 'DISPOSED') Dihapus (DISPOSED)
+                    div(class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-slate-400")
+                      svg(xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+                        path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7")
+        
+        // Empty state inside the box
+        div(id="assets-empty-state" class="text-center py-8 text-slate-500 text-sm italic hidden")
+          | Tidak ada aset di ruangan ini.
     
     div(class="md:col-span-2")
       +inputField("maintenanceDate", "maintenanceDate", "Tanggal Tindakan Pemeliharaan", today, "date", "", true)
@@ -74,7 +142,7 @@ block crud_form_fields
       div(class="max-h-60 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50 p-2" id="bhp-list-container")
         if bhps && bhps.length > 0
           each bhp, index in bhps
-            div(class="bhp-item flex items-center justify-between gap-4 p-3 bg-white hover:bg-slate-50/50 rounded-lg transition-colors mb-1 shadow-sm border border-slate-100" data-name=bhp.name.toLowerCase())
+            div(class="bhp-item flex items-center justify-between gap-4 p-3 bg-white hover:bg-slate-50/50 rounded-lg transition-colors mb-1 shadow-sm border border-slate-100" data-name=bhp.name.toLowerCase() data-room-id=bhp.roomId)
               div
                 p(class="text-sm font-medium text-slate-900")= bhp.name
                 p(class="text-xs text-slate-500 mt-0.5")= `Stok Tersedia: ${bhp.stock} ${bhp.unit || 'pcs'}`
@@ -97,36 +165,137 @@ block crud_form_fields
 
   script.
     (function() {
-      const searchInput = document.getElementById('bhp-search');
-      const listContainer = document.getElementById('bhp-list-container');
+      const roomInput = document.getElementById('roomId');
+      const assetsContainer = document.getElementById('assets-container');
+      const assetRows = Array.from(document.querySelectorAll('.asset-row'));
+      const assetsEmptyState = document.getElementById('assets-empty-state');
       
-      if (!searchInput || !listContainer) return;
+      const bhpSearchInput = document.getElementById('bhp-search');
+      const bhpListContainer = document.getElementById('bhp-list-container');
+      const bhpItems = Array.from(document.querySelectorAll('.bhp-item'));
+      const bhpEmptyState = document.getElementById('bhp-empty-state');
       
-      const bhpItems = Array.from(listContainer.getElementsByClassName('bhp-item'));
-      const emptyState = document.getElementById('bhp-empty-state');
-      
-      searchInput.addEventListener('input', function() {
-        const query = searchInput.value.toLowerCase().trim();
-        let visibleCount = 0;
+      if (!roomInput) return;
+
+      function updateUI() {
+        const selectedRoomId = roomInput.value;
+        if (!selectedRoomId) {
+          assetsContainer.classList.add('hidden');
+          // Hide BHPs
+          bhpItems.forEach(item => {
+            item.classList.remove('flex');
+            item.classList.add('hidden');
+          });
+          return;
+        }
+
+        assetsContainer.classList.remove('hidden');
+
+        // Filter assets
+        let visibleAssets = 0;
+        assetRows.forEach(row => {
+          const rowRoomId = row.getAttribute('data-room-id');
+          if (rowRoomId === selectedRoomId) {
+            row.classList.remove('hidden');
+            row.classList.add('grid');
+            visibleAssets++;
+          } else {
+            row.classList.remove('grid');
+            row.classList.add('hidden');
+            // Uncheck checkbox for hidden assets so they are not submitted
+            const chk = row.querySelector('input[type="checkbox"]');
+            if (chk) {
+              chk.checked = false;
+              // Trigger change event to disable the conditionAfter select
+              chk.dispatchEvent(new Event('change'));
+            }
+          }
+        });
+
+        if (visibleAssets === 0) {
+          assetsEmptyState.classList.remove('hidden');
+        } else {
+          assetsEmptyState.classList.add('hidden');
+        }
+
+        // Filter BHPs by selected room and search query
+        filterBHPs();
+      }
+
+      function filterBHPs() {
+        const selectedRoomId = roomInput.value;
+        const query = bhpSearchInput ? bhpSearchInput.value.toLowerCase().trim() : '';
         
+        let visibleCount = 0;
         bhpItems.forEach(item => {
-          const name = item.getAttribute('data-name');
-          if (name.includes(query)) {
+          const bhpRoomId = item.getAttribute('data-room-id');
+          const name = item.getAttribute('data-name') || '';
+          
+          if (selectedRoomId && String(bhpRoomId) === String(selectedRoomId) && name.includes(query)) {
             item.classList.remove('hidden');
             item.classList.add('flex');
             visibleCount++;
           } else {
             item.classList.remove('flex');
             item.classList.add('hidden');
+            // Reset quantity to empty/0 for hidden BHPs
+            const qtyInput = item.querySelector('input[type="number"]');
+            if (qtyInput) {
+              qtyInput.value = '';
+            }
           }
         });
+
+        if (bhpEmptyState) {
+          if (visibleCount === 0) {
+            bhpEmptyState.classList.remove('hidden');
+          } else {
+            bhpEmptyState.classList.add('hidden');
+          }
+        }
+      }
+
+      // Add change listeners to checkboxes to toggle disable state on conditionAfter select dropdowns
+      assetRows.forEach(row => {
+        const chk = row.querySelector('input[type="checkbox"]');
+        const selectAfter = row.querySelector('.asset-after-select');
         
-        if (visibleCount === 0) {
-          emptyState.classList.remove('hidden');
-        } else {
-          emptyState.classList.add('hidden');
+        if (chk && selectAfter) {
+          chk.addEventListener('change', function() {
+            if (chk.checked) {
+              selectAfter.disabled = false;
+              selectAfter.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+              selectAfter.disabled = true;
+              selectAfter.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+          });
         }
       });
+
+      // Listen to room select change
+      roomInput.addEventListener('change', updateUI);
+
+      // Listen to BHP search input
+      if (bhpSearchInput) {
+        bhpSearchInput.addEventListener('input', filterBHPs);
+      }
+
+      // Run initial setup (e.g. if room is pre-selected)
+      updateUI();
+
+      // Also support pre-checking a specific selectedInventoryId
+      const targetInventoryId = '#{selectedInventoryId || ""}';
+      if (targetInventoryId) {
+        const targetRow = assetRows.find(r => r.getAttribute('data-asset-id') === targetInventoryId);
+        if (targetRow) {
+          const chk = targetRow.querySelector('input[type="checkbox"]');
+          if (chk) {
+            chk.checked = true;
+            chk.dispatchEvent(new Event('change'));
+          }
+        }
+      }
     })();
 
 block crud_form_submit_label
