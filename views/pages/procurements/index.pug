@@ -15,21 +15,15 @@ block sidebar
     include ../../components/sidebars/staf_lab.pug
 
 block crud_title
-  if selectedStatus === 'APPROVED'
-    | Draf Pengadaan Final (Disetujui)
-  else
-    | Pengadaan Barang (Inventaris &amp; BHP)
+  | Pengadaan Barang (Inventaris &amp; BHP)
 
 block crud_subtitle
-  if selectedStatus === 'APPROVED'
-    | Daftar draf pengadaan tahunan yang telah disetujui dan difinalisasi.
-  else
-    | Kelola usulan draf pengadaan barang tahunan laboratorium.
+  | Kelola usulan draf pengadaan barang tahunan laboratorium.
 
 block crud_search
-  - const hasActiveFilters = selectedYear || selectedCreatedById || selectedItemType || (selectedStatus && selectedStatus !== 'APPROVED') || selectedSort !== 'latest'
-  - const isAdvancedOpened = selectedYear || selectedCreatedById || selectedItemType || (selectedStatus && selectedStatus !== 'APPROVED')
-  - const resetUrl = selectedStatus === 'APPROVED' ? "/procurements?status=APPROVED" : "/procurements"
+  - const hasActiveFilters = selectedYear || selectedCreatedById || selectedItemType || selectedStatus || selectedSort !== 'latest'
+  - const isAdvancedOpened = selectedYear || selectedCreatedById || selectedItemType || selectedStatus
+  - const resetUrl = "/procurements"
   -
     const sortFilterOptions = [
       { value: 'latest', label: 'Terbaru' },
@@ -38,7 +32,7 @@ block crud_search
       { value: 'status', label: 'Status' },
       { value: 'item_amount', label: 'Jumlah Barang' }
     ]
-  - const gridCols = selectedStatus === 'APPROVED' ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4'
+  - const gridCols = 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4'
 
   +filterBar("/procurements", "Cari draf pengadaan...", isAdvancedOpened, resetUrl, hasActiveFilters, sortFilterOptions, selectedSort || 'latest', gridCols)
     //- Year Filter
@@ -73,19 +67,16 @@ block crud_search
       +selectField("itemType", "itemType", null, itemTypeOptions, selectedItemType || '', false, "py-2 pl-3 pr-10 bg-white min-w-full")
 
     //- Status Filter
-    if selectedStatus === 'APPROVED'
-      input(type="hidden" name="status" value="APPROVED")
-    else
-      -
-        const statusFilterOptions = [
-          { value: '', label: 'Semua Status' },
-          { value: 'DRAFT', label: 'DRAFT' },
-          { value: 'PENDING_REVIEW', label: 'PENDING_REVIEW' },
-          { value: 'APPROVED', label: 'COMPLETED (APPROVED)' }
-        ]
-      div(class="space-y-1.5")
-        label(class="text-xs font-semibold text-slate-500 uppercase tracking-wider") Status Draf
-        +selectField("status", "status", null, statusFilterOptions, selectedStatus || '', false, "py-2 pl-3 pr-10 bg-white min-w-full")
+    -
+      const statusFilterOptions = [
+        { value: '', label: 'Semua Status' },
+        ...(sessionUser.userRole !== 'KAPRODI' ? [{ value: 'DRAFT', label: 'DRAFT' }] : []),
+        { value: 'PENDING_REVIEW', label: 'PENDING_REVIEW' },
+        { value: 'APPROVED', label: 'COMPLETED (APPROVED)' }
+      ]
+    div(class="space-y-1.5")
+      label(class="text-xs font-semibold text-slate-500 uppercase tracking-wider") Status Draf
+      +selectField("status", "status", null, statusFilterOptions, selectedStatus || '', false, "py-2 pl-3 pr-10 bg-white min-w-full")
 
 
 block crud_create_button

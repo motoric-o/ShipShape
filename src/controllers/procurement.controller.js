@@ -35,6 +35,7 @@ const ProcurementController = {
       const itemType = req.query.itemType || '';
 
       const skip = (page - 1) * limit;
+      const userRole = req.session.userRole;
 
       const where = {
         ...(search.trim() !== '' ? {
@@ -54,6 +55,18 @@ const ProcurementController = {
           }
         } : {})
       };
+
+      if (userRole === 'KAPRODI') {
+        if (status.trim() !== '') {
+          if (status === 'DRAFT') {
+            where.status = { in: [] };
+          } else {
+            where.status = status;
+          }
+        } else {
+          where.status = { in: ['PENDING_REVIEW', 'APPROVED'] };
+        }
+      }
 
       let orderBy = { createdAt: 'desc' };
       if (sortBy === 'oldest') orderBy = { createdAt: 'asc' };
@@ -156,6 +169,12 @@ const ProcurementController = {
       if (!draft) {
         return res.redirect('/procurements');
       }
+
+      const userRole = req.session.userRole;
+      if (userRole === 'KAPRODI' && draft.status === 'DRAFT') {
+        return res.redirect('/procurements?error=Kaprodi tidak memiliki akses ke draf pengadaan.');
+      }
+
       const rooms = await prisma.room.findMany({ orderBy: { name: 'asc' } });
       const inventoryItems = await prisma.inventory.findMany({ orderBy: { name: 'asc' } });
       res.render('pages/procurements/show', {
@@ -317,6 +336,10 @@ const ProcurementController = {
       const draft = await ProcurementModel.findDraftById(id);
       if (!draft) {
         return res.status(404).json({ error: 'Procurement draft not found' });
+      }
+      const userRole = req.session.userRole;
+      if (userRole === 'KAPRODI' && draft.status === 'DRAFT') {
+        return res.status(403).json({ error: 'Kaprodi tidak memiliki akses ke draf pengadaan.' });
       }
       return res.json({ draft });
     } catch (error) {
