@@ -9,6 +9,18 @@ const maintenanceSchema = z.object({
   maintenanceDate: z.string().optional().or(z.literal(''))
 });
 
+const roomMaintenanceSchema = z.object({
+  description: z.string().trim().min(1, 'Description is required'),
+  maintenanceDate: z.string().optional().or(z.literal('')),
+  assets: z.array(
+    z.object({
+      id: z.coerce.number().int().positive(),
+      checked: z.string().optional(),
+      conditionAfter: z.enum(['GOOD', 'MAINTENANCE', 'BROKEN', 'DISPOSED']).optional()
+    })
+  ).optional()
+});
+
 const MaintenanceController = {
   // --- Web MVC Actions ---
   async index(req, res, next) {
@@ -106,14 +118,26 @@ const MaintenanceController = {
   async create(req, res, next) {
     try {
       const selectedInventoryId = req.query.inventoryId ? parseInt(req.query.inventoryId) : undefined;
-      const [inventories, bhps] = await Promise.all([
+      const [inventories, bhps, rooms] = await Promise.all([
         prisma.inventory.findMany({ orderBy: { name: 'asc' } }),
-        prisma.bHP.findMany({ orderBy: { name: 'asc' } })
+        prisma.bHP.findMany({ orderBy: { name: 'asc' } }),
+        prisma.room.findMany({ orderBy: { name: 'asc' } })
       ]);
+      
+      let selectedRoomId = undefined;
+      if (selectedInventoryId) {
+        const inv = inventories.find(i => i.id === selectedInventoryId);
+        if (inv) {
+          selectedRoomId = inv.roomId;
+        }
+      }
+
       res.render('pages/maintenance/form', {
         inventories,
         bhps,
+        rooms,
         selectedInventoryId,
+        selectedRoomId,
         sessionUser: req.session,
         backUrl: '/maintenance',
         actionUrl: '/maintenance',
@@ -127,15 +151,20 @@ const MaintenanceController = {
 
   async store(req, res, next) {
     try {
-      const result = maintenanceSchema.safeParse(req.body);
+      const result = roomMaintenanceSchema.safeParse(req.body);
       if (!result.success) {
         const errorMsg = result.error.errors.map(e => e.message).join(', ');
         return res.redirect(`/maintenance/new?error=${encodeURIComponent(errorMsg)}`);
       }
-      const { inventoryId, description, conditionAfter, maintenanceDate } = result.data;
+      const { description, maintenanceDate, assets } = result.data;
       const performedById = req.session.userId;
       if (!performedById) {
         return res.redirect('/login');
+      }
+
+      const submittedAssets = (assets || []).filter(asset => asset.checked === 'on');
+      if (submittedAssets.length === 0) {
+        return res.redirect('/maintenance/new?error=Silakan pilih setidaknya satu aset untuk pemeliharaan');
       }
 
       const { bhpUsages } = req.body;
@@ -155,16 +184,21 @@ const MaintenanceController = {
         }
       }
 
-      await MaintenanceModel.createLog(
-        {
-          inventoryId,
-          description,
-          conditionAfter,
-          performedById,
-          maintenanceDate: maintenanceDate ? new Date(maintenanceDate) : undefined
-        },
-        parsedBhpUsages
-      );
+      // Loop through all checked assets and create logs
+      for (let i = 0; i < submittedAssets.length; i++) {
+        const asset = submittedAssets[i];
+        await MaintenanceModel.createLog(
+          {
+            inventoryId: asset.id,
+            description,
+            conditionAfter: asset.conditionAfter || 'GOOD',
+            performedById,
+            maintenanceDate: maintenanceDate ? new Date(maintenanceDate) : undefined
+          },
+          i === 0 ? parsedBhpUsages : []
+        );
+      }
+
       res.redirect('/maintenance');
     } catch (error) {
       console.error('Error creating maintenance log:', error);
