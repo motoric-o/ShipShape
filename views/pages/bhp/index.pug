@@ -54,19 +54,19 @@ block crud_create_button
         path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4")
       | Tambah BHP
 
-script.
-  function toggleStockButton(inputEl) {
-    const form = inputEl.closest('form');
-    const btn = form.querySelector('.stock-save-btn');
-    const originalValue = inputEl.getAttribute('data-original');
-    if (inputEl.value !== originalValue) {
-      btn.classList.remove('opacity-0', 'pointer-events-none');
-      btn.classList.add('opacity-100', 'pointer-events-auto');
-    } else {
-      btn.classList.add('opacity-0', 'pointer-events-none');
-      btn.classList.remove('opacity-100', 'pointer-events-auto');
+  script.
+    function toggleStockButton(inputEl) {
+      const form = inputEl.closest('form');
+      const btn = form.querySelector('.stock-save-btn');
+      const originalValue = inputEl.getAttribute('data-original');
+      if (inputEl.value !== originalValue) {
+        btn.classList.remove('opacity-0', 'pointer-events-none');
+        btn.classList.add('opacity-100', 'pointer-events-auto');
+      } else {
+        btn.classList.add('opacity-0', 'pointer-events-none');
+        btn.classList.remove('opacity-100', 'pointer-events-auto');
+      }
     }
-  }
 
 block crud_table_headers
   th(class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider") Nama Barang
