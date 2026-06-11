@@ -19,6 +19,7 @@ const MaintenanceController = {
       const inventoryId = req.query.inventoryId ? parseInt(req.query.inventoryId) : undefined;
       const performedById = req.query.performedById ? parseInt(req.query.performedById) : undefined;
       const condition = req.query.condition || '';
+      const year = req.query.year ? parseInt(req.query.year) : undefined;
 
       const skip = (page - 1) * limit;
 
@@ -32,8 +33,55 @@ const MaintenanceController = {
         } : {}),
         ...(inventoryId ? { inventoryId } : {}),
         ...(performedById ? { performedById } : {}),
-        ...(condition ? { conditionAfter: condition } : {})
+        ...(condition ? { conditionAfter: condition } : {}),
+        ...(year ? {
+          maintenanceDate: {
+            gte: new Date(`${year}-01-01T00:00:00.000Z`),
+            lte: new Date(`${year}-12-31T23:59:59.999Z`)
+          }
+        } : {})
       };
+
+      // Fetch distinct years from maintenance logs
+      const uniqueYearsResult = await prisma.maintenanceLog.findMany({
+        select: { maintenanceDate: true },
+        distinct: ['maintenanceDate'],
+        orderBy: { maintenanceDate: 'desc' }
+      });
+      const yearsSet = new Set();
+      uniqueYearsResult.forEach(log => {
+        if (log.maintenanceDate) {
+          yearsSet.add(new Date(log.maintenanceDate).getFullYear());
+        }
+      });
+      let yearsList = Array.from(yearsSet);
+      const currentYear = new Date().getFullYear();
+      const defaultYears = [currentYear - 1, currentYear, currentYear + 1];
+      defaultYears.forEach(y => {
+        if (!yearsList.includes(y)) {
+          yearsList.push(y);
+        }
+      });
+      yearsList.sort((a, b) => b - a);
+
+      // Fetch list of performers
+      const performersList = await prisma.users.findMany({
+        where: {
+          maintenances: { some: {} }
+        },
+        select: { id: true, name: true, role: { select: { name: true } } },
+        orderBy: { name: 'asc' }
+      });
+      if (performersList.length === 0) {
+        const fallbackUsers = await prisma.users.findMany({
+          where: {
+            role: { name: { in: ['KALAB', 'STAF_LAB', 'ADMIN'] } }
+          },
+          select: { id: true, name: true, role: { select: { name: true } } },
+          orderBy: { name: 'asc' }
+        });
+        performersList.push(...fallbackUsers);
+      }
 
       const [logs, totalItems, inventories] = await Promise.all([
         prisma.maintenanceLog.findMany({
@@ -74,6 +122,11 @@ const MaintenanceController = {
         inventories,
         selectedInventoryId: inventoryId || '',
         selectedCondition: condition,
+        selectedPerformedById: performedById || '',
+        selectedYear: year || '',
+        yearsList,
+        performersList,
+        currentQuery: req.query,
         sessionUser: req.session,
         searchActionUrl: '/maintenance',
         searchPlaceholder: 'Cari log pemeliharaan...',

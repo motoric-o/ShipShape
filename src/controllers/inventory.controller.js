@@ -79,6 +79,8 @@ const InventoryController = {
       const search = req.query.search || '';
       const roomId = req.query.roomId ? parseInt(req.query.roomId) : undefined;
       const condition = req.query.condition || '';
+      const labelStatus = req.query.labelStatus || '';
+      const qrStatus = req.query.qrStatus || '';
       
       const skip = (page - 1) * limit;
 
@@ -90,7 +92,31 @@ const InventoryController = {
           ]
         } : {}),
         ...(roomId ? { roomId } : {}),
-        ...(condition.trim() !== '' ? { condition } : {})
+        ...(condition.trim() !== '' ? { condition } : {}),
+        ...(labelStatus === 'labeled' ? {
+          AND: [
+            { labelNumber: { not: null } },
+            { labelNumber: { not: '' } }
+          ]
+        } : {}),
+        ...(labelStatus === 'unlabeled' ? {
+          OR: [
+            { labelNumber: null },
+            { labelNumber: '' }
+          ]
+        } : {}),
+        ...(qrStatus === 'has_qr' ? {
+          AND: [
+            { qrCodePhotoPath: { not: null } },
+            { qrCodePhotoPath: { not: '' } }
+          ]
+        } : {}),
+        ...(qrStatus === 'no_qr' ? {
+          OR: [
+            { qrCodePhotoPath: null },
+            { qrCodePhotoPath: '' }
+          ]
+        } : {})
       };
 
       const [inventories, totalItems, rooms] = await Promise.all([
@@ -124,6 +150,9 @@ const InventoryController = {
         rooms,
         selectedRoomId: roomId || '',
         selectedCondition: condition,
+        selectedLabelStatus: labelStatus,
+        selectedQrStatus: qrStatus,
+        currentQuery: req.query,
         sessionUser: req.session,
         searchActionUrl: '/inventory',
         searchPlaceholder: 'Cari inventaris...',

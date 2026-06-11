@@ -32,6 +32,7 @@ const ProcurementController = {
       const sortBy = req.query.sortBy || 'latest';
       const year = req.query.year ? parseInt(req.query.year) : undefined;
       const createdById = req.query.createdById ? parseInt(req.query.createdById) : undefined;
+      const itemType = req.query.itemType || '';
 
       const skip = (page - 1) * limit;
 
@@ -44,7 +45,14 @@ const ProcurementController = {
         } : {}),
         ...(status.trim() !== '' ? { status } : {}),
         ...(year ? { year } : {}),
-        ...(createdById ? { createdById } : {})
+        ...(createdById ? { createdById } : {}),
+        ...(itemType.trim() !== '' ? {
+          items: {
+            some: {
+              type: itemType
+            }
+          }
+        } : {})
       };
 
       let orderBy = { createdAt: 'desc' };
@@ -52,6 +60,33 @@ const ProcurementController = {
       else if (sortBy === 'names') orderBy = { title: 'asc' };
       else if (sortBy === 'status') orderBy = { status: 'asc' };
       else if (sortBy === 'item_amount') orderBy = { items: { _count: 'desc' } };
+
+      // Get unique years and creators for dropdowns
+      const uniqueYearsResult = await prisma.procurementDraft.findMany({
+        select: { year: true },
+        distinct: ['year'],
+        orderBy: { year: 'desc' }
+      });
+      let yearsList = uniqueYearsResult.map(y => y.year);
+      const currentYear = new Date().getFullYear();
+      const defaultYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+      defaultYears.forEach(y => {
+        if (!yearsList.includes(y)) {
+          yearsList.push(y);
+        }
+      });
+      yearsList.sort((a, b) => b - a);
+
+      const creatorsList = await prisma.users.findMany({
+        where: {
+          OR: [
+            { createdDrafts: { some: {} } },
+            { role: { name: { in: ['KALAB', 'STAF_LAB', 'ADMIN'] } } }
+          ]
+        },
+        select: { id: true, name: true, role: { select: { name: true } } },
+        orderBy: { name: 'asc' }
+      });
 
       const [drafts, totalItems] = await Promise.all([
         prisma.procurementDraft.findMany({
@@ -88,6 +123,10 @@ const ProcurementController = {
         selectedSort: sortBy,
         currentQuery: req.query,
         selectedYear: year || '',
+        selectedCreatedById: createdById || '',
+        selectedItemType: itemType,
+        yearsList,
+        creatorsList,
         sessionUser: req.session,
         searchActionUrl: '/procurements',
         searchPlaceholder: 'Cari pengadaan...',
