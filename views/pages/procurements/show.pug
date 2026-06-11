@@ -162,10 +162,14 @@ block content
           tbody(class="divide-y divide-slate-100 text-sm")
             if draft.items && draft.items.length > 0
               each item in draft.items
-                tr(class="hover:bg-slate-50/50 transition-colors group" id=`item-row-${item.id}` data-item-id=item.id data-item-status=item.status data-item-price=item.price data-item-qty=item.quantity data-item-name=item.name data-item-type=item.type data-item-link=(item.link || "") data-item-replaced=(item.replacedInventoryId || ""))
+                tr(class="hover:bg-slate-50/50 transition-colors group" id=`item-row-${item.id}` data-item-id=item.id data-item-status=item.status data-item-price=item.price data-item-qty=item.quantity data-item-name=item.name data-item-type=item.type data-item-link=(item.link || "") data-item-replaced=(item.replacedInventoryId || "") data-item-room=(item.roomId || ""))
                   td(class="px-3 py-3")
                     div(class="font-semibold text-slate-800")= item.name
-                    div(class="text-xs text-slate-400 mt-0.5") ID: ##{item.id}
+                    div(class="text-xs text-slate-400 mt-0.5")
+                      | ID: ##{item.id}
+                      if item.room
+                        span(class="mx-1 text-slate-300") •
+                        span(class="text-slate-500 font-medium") Ruangan: #{item.room.name}
                   td(class="px-3 py-3")
                     if item.type === 'INVENTORY'
                       span(class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100")
@@ -325,13 +329,20 @@ block content
             +inputField("price", "price", "Harga Satuan (Rp)", '', "number", "150000", true)(min="0")
             +inputField("quantity", "quantity", "Kuantitas (Jumlah)", '', "number", "1", true)(min="1")
 
-          +inputField("link", "link", "Link Produk / Pembelian (Opsional)", '', "url", "https://tokopedia.com/...", false)
-
           -
             const replacedInventoryOptions = (inventoryItems || []).map(item => ({
               value: item.id,
               label: `${item.name} (${item.labelNumber || 'Belum Berlabel'})`
             }));
+            const roomSelectOptions = (rooms || []).map(r => ({
+              value: r.id,
+              label: r.name
+            }));
+          
+          div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
+            +selectField("roomId", "roomId", "Lokasi Ruangan (Khusus Aset)", roomSelectOptions, '', false)
+            +inputField("link", "link", "Link Produk / Pembelian", '', "url", "https://tokopedia.com/...", true)
+
           div(class="space-y-2")
             +searchableSelectField("replacedInventoryId", "replacedInventoryId", "Aset yang Digantikan (Opsional)", replacedInventoryOptions, '', false, "-- Pilih Aset (Jika Mengganti Aset Rusak) --")
 
@@ -359,7 +370,9 @@ block content
             +inputField("edit-price", "price", "Harga Satuan (Rp)", '', "number", "150000", true)(min="0")
             +inputField("edit-quantity", "quantity", "Kuantitas (Jumlah)", '', "number", "1", true)(min="1")
 
-          +inputField("edit-link", "link", "Link Produk / Pembelian (Opsional)", '', "url", "https://tokopedia.com/...", false)
+          div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
+            +selectField("edit-roomId", "roomId", "Lokasi Ruangan (Khusus Aset)", roomSelectOptions, '', false)
+            +inputField("edit-link", "link", "Link Produk / Pembelian", '', "url", "https://tokopedia.com/...", true)
 
           div(class="space-y-2")
             +searchableSelectField("edit-replacedInventoryId", "replacedInventoryId", "Aset yang Digantikan (Opsional)", replacedInventoryOptions, '', false, "-- Pilih Aset (Jika Mengganti Aset Rusak) --")
@@ -795,6 +808,11 @@ block content
     }
 
     function openAddItemModal() {
+      const roomInput = document.getElementById('roomId');
+      if (roomInput) {
+        roomInput.value = '';
+        roomInput.dispatchEvent(new Event('change'));
+      }
       const replacedInput = document.getElementById('replacedInventoryId');
       if (replacedInput) {
         replacedInput.value = '';
@@ -815,6 +833,7 @@ block content
       const quantity = row.dataset.itemQty;
       const link = row.dataset.itemLink;
       const replacedId = row.dataset.itemReplaced;
+      const roomId = row.dataset.itemRoom;
 
       document.getElementById('edit-item-form').action = `/procurements/items/${itemId}?_method=PUT`;
       document.getElementById('edit-name').value = name;
@@ -822,6 +841,12 @@ block content
       document.getElementById('edit-price').value = price;
       document.getElementById('edit-quantity').value = quantity;
       document.getElementById('edit-link').value = link;
+
+      const roomInput = document.getElementById('edit-roomId');
+      if (roomInput) {
+        roomInput.value = roomId || '';
+        roomInput.dispatchEvent(new Event('change'));
+      }
 
       const replacedInput = document.getElementById('edit-replacedInventoryId');
       if (replacedInput) {

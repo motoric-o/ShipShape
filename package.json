@@ -43,6 +43,7 @@
     "express-session": "^1.19.0",
     "mariadb": "^3.5.2",
     "method-override": "^3.0.0",
+    "multer": "^2.1.1",
     "pug": "^3.0.4",
     "qrcode": "^1.5.4",
     "zod": "^4.4.3"

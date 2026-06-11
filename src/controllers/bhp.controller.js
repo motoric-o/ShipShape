@@ -19,14 +19,18 @@ const BHPController = {
       const limit = parseInt(req.query.limit) || 10;
       const search = req.query.search || '';
       const roomId = req.query.roomId ? parseInt(req.query.roomId) : undefined;
-      
+      const status = req.query.status || '';
+
       const skip = (page - 1) * limit;
 
       const where = {
         ...(search.trim() !== '' ? {
           name: { contains: search }
         } : {}),
-        ...(roomId ? { roomId } : {})
+        ...(roomId ? { roomId } : {}),
+        ...(status === 'EMPTY' ? { stock: 0 } : {}),
+        ...(status === 'LOW' ? { stock: { gt: 0, lte: 5 } } : {}),
+        ...(status === 'OK' ? { stock: { gt: 5 } } : {})
       };
 
       const [bhps, totalItems, rooms] = await Promise.all([
@@ -59,6 +63,7 @@ const BHPController = {
         bhps,
         rooms,
         selectedRoomId: roomId || '',
+        selectedStatus: status,
         sessionUser: req.session,
         searchActionUrl: '/bhp',
         searchPlaceholder: 'Cari BHP...',
@@ -222,7 +227,7 @@ const BHPController = {
       const { id } = req.params;
       const { stock } = req.body;
       const isApi = req.xhr || (req.headers.accept && req.headers.accept.includes('json')) || req.headers['content-type'] === 'application/json' || req.originalUrl.startsWith('/api');
-      
+
       const stockSchema = z.coerce.number().int().nonnegative('Stock must be a non-negative integer');
       const stockResult = stockSchema.safeParse(stock);
       if (!stockResult.success) {

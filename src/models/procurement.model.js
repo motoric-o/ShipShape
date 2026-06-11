@@ -8,6 +8,7 @@ const ProcurementModel = {
         items: {
           include: {
             replacedInventory: true,
+            room: true,
           },
         },
         createdBy: {
@@ -86,6 +87,7 @@ const ProcurementModel = {
       include: {
         draft: true,
         replacedInventory: true,
+        room: true,
       },
     });
   },

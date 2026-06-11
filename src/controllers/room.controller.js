@@ -12,15 +12,30 @@ const RoomController = {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const search = req.query.search || '';
-      
+      const assetFilter = req.query.assetFilter || '';
+      const bhpFilter = req.query.bhpFilter || '';
+
       const skip = (page - 1) * limit;
 
-      const where = search.trim() !== '' ? {
-        OR: [
+      const where = {};
+      if (search.trim() !== '') {
+        where.OR = [
           { name: { contains: search } },
           { description: { contains: search } }
-        ]
-      } : {};
+        ];
+      }
+
+      if (assetFilter === 'has_assets') {
+        where.inventories = { some: {} };
+      } else if (assetFilter === 'no_assets') {
+        where.inventories = { none: {} };
+      }
+
+      if (bhpFilter === 'has_bhps') {
+        where.bhps = { some: {} };
+      } else if (bhpFilter === 'no_bhps') {
+        where.bhps = { none: {} };
+      }
 
       const [rooms, totalItems] = await Promise.all([
         prisma.room.findMany({
@@ -57,6 +72,8 @@ const RoomController = {
         sessionUser: req.session,
         searchActionUrl: '/rooms',
         searchPlaceholder: 'Cari ruangan...',
+        selectedAssetFilter: assetFilter,
+        selectedBhpFilter: bhpFilter,
         pagination: {
           currentPage: page,
           totalPages,
