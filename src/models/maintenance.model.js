@@ -5,15 +5,19 @@ const MaintenanceModel = {
     return prisma.maintenanceLog.findUnique({
       where: { id: parseInt(id) },
       include: {
-        inventory: {
-          include: { room: true },
-        },
         performedBy: {
           select: { id: true, name: true, email: true, role: true },
         },
-        bhpUsages: {
+        items: {
           include: {
-            bhp: true,
+            inventory: {
+              include: { room: true },
+            },
+            bhpUsages: {
+              include: {
+                bhp: true,
+              },
+            },
           },
         },
       },
@@ -23,7 +27,11 @@ const MaintenanceModel = {
   async findAllLogs(filters = {}) {
     const where = {};
     if (filters.inventoryId) {
-      where.inventoryId = parseInt(filters.inventoryId);
+      where.items = {
+        some: {
+          inventoryId: parseInt(filters.inventoryId)
+        }
+      };
     }
     if (filters.performedById) {
       where.performedById = parseInt(filters.performedById);
@@ -32,97 +40,122 @@ const MaintenanceModel = {
     return prisma.maintenanceLog.findMany({
       where,
       include: {
-        inventory: {
-          select: { name: true, labelNumber: true },
+        items: {
+          include: {
+            inventory: {
+              select: { name: true, labelNumber: true },
+            },
+            bhpUsages: {
+              include: {
+                bhp: true
+              }
+            }
+          }
         },
         performedBy: {
-          select: { name: true },
+          select: { name: true, email: true },
         },
       },
       orderBy: { maintenanceDate: 'desc' },
     });
   },
 
-  async createLog(logData, bhpUsages = []) {
-    return prisma.$transaction(async (tx) => {
-      // 1. Verify inventory item exists
-      const inventory = await tx.inventory.findUnique({
-        where: { id: parseInt(logData.inventoryId) }
-      });
-      if (!inventory) {
-        throw new Error(`Inventory item with ID ${logData.inventoryId} not found`);
-      }
+  async createLog(logData, bhpUsagesOrItems = []) {
+    let items = [];
+    if (logData.inventoryId) {
+      // Old format: single asset log
+      items = [{
+        inventoryId: logData.inventoryId,
+        conditionAfter: logData.conditionAfter || 'GOOD',
+        bhpUsages: bhpUsagesOrItems
+      }];
+    } else {
+      // New format: bhpUsagesOrItems is the list of items
+      items = bhpUsagesOrItems;
+    }
 
+    return prisma.$transaction(async (tx) => {
       const log = await tx.maintenanceLog.create({
         data: {
-          inventoryId: parseInt(logData.inventoryId),
           description: logData.description,
-          conditionAfter: logData.conditionAfter,
           performedById: parseInt(logData.performedById),
           maintenanceDate: logData.maintenanceDate ? new Date(logData.maintenanceDate) : new Date(),
         },
       });
 
-      for (const usage of bhpUsages) {
-        const bhpId = parseInt(usage.bhpId);
-        const qty = parseInt(usage.quantity);
-
-        if (isNaN(bhpId) || bhpId <= 0) {
-          throw new Error('bhpId must be a positive integer');
-        }
-        if (isNaN(qty) || qty <= 0) {
-          throw new Error('BHP quantity must be a positive integer');
-        }
-
-        // Verify BHP item exists and has enough stock
-        const bhp = await tx.bHP.findUnique({
-          where: { id: bhpId }
+      for (const item of items) {
+        const inventoryId = parseInt(item.inventoryId);
+        const inventory = await tx.inventory.findUnique({
+          where: { id: inventoryId }
         });
-        if (!bhp) {
-          throw new Error(`BHP item with ID ${bhpId} not found`);
-        }
-        if (bhp.stock < qty) {
-          throw new Error(`Insufficient stock for BHP item: ${bhp.name}. Available: ${bhp.stock}, requested: ${qty}`);
+        if (!inventory) {
+          throw new Error(`Inventory item with ID ${inventoryId} not found`);
         }
 
-        await tx.maintenanceBHPUsage.create({
+        const maintenanceItem = await tx.maintenanceItem.create({
           data: {
             maintenanceLogId: log.id,
-            bhpId: bhpId,
-            quantity: qty,
+            inventoryId: inventoryId,
+            conditionAfter: item.conditionAfter,
           },
         });
 
-        await tx.bHP.update({
-          where: { id: bhpId },
-          data: {
-            stock: {
-              decrement: qty,
+        const bhpUsages = item.bhpUsages || [];
+        for (const usage of bhpUsages) {
+          const bhpId = parseInt(usage.bhpId);
+          const qty = parseInt(usage.quantity);
+
+          if (isNaN(bhpId) || bhpId <= 0) {
+            throw new Error('bhpId must be a positive integer');
+          }
+          if (isNaN(qty) || qty <= 0) {
+            throw new Error('BHP quantity must be a positive integer');
+          }
+
+          // Verify BHP item exists and has enough stock
+          const bhp = await tx.bHP.findUnique({
+            where: { id: bhpId }
+          });
+          if (!bhp) {
+            throw new Error(`BHP item with ID ${bhpId} not found`);
+          }
+          if (bhp.stock < qty) {
+            throw new Error(`Insufficient stock for BHP item: ${bhp.name}. Available: ${bhp.stock}, requested: ${qty}`);
+          }
+
+          await tx.maintenanceBHPUsage.create({
+            data: {
+              maintenanceItemId: maintenanceItem.id,
+              bhpId: bhpId,
+              quantity: qty,
             },
+          });
+
+          await tx.bHP.update({
+            where: { id: bhpId },
+            data: {
+              stock: {
+                decrement: qty,
+              },
+            },
+          });
+        }
+
+        await tx.inventory.update({
+          where: { id: inventoryId },
+          data: {
+            condition: item.conditionAfter,
           },
         });
       }
-
-      await tx.inventory.update({
-        where: { id: parseInt(logData.inventoryId) },
-        data: {
-          condition: logData.conditionAfter,
-        },
-      });
 
       return log;
     });
   },
 
   async deleteLog(id) {
-    return prisma.$transaction(async (tx) => {
-      await tx.maintenanceBHPUsage.deleteMany({
-        where: { maintenanceLogId: parseInt(id) },
-      });
-
-      return tx.maintenanceLog.delete({
-        where: { id: parseInt(id) },
-      });
+    return prisma.maintenanceLog.delete({
+      where: { id: parseInt(id) },
     });
   },
 };

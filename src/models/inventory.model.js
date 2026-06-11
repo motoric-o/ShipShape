@@ -7,7 +7,20 @@ const InventoryModel = {
       where: { id: parseInt(id) },
       include: {
         room: includeRoom,
-        maintenanceLogs: includeMaintenanceLogs,
+        maintenanceItems: includeMaintenanceLogs ? {
+          include: {
+            maintenanceLog: {
+              include: {
+                performedBy: {
+                  select: { id: true, name: true, email: true }
+                }
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        } : false,
       },
     });
   },

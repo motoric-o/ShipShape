@@ -29,6 +29,7 @@ async function main() {
   // 1. Clean the database in reverse order of dependencies
   console.log('Cleaning existing data...');
   await prisma.maintenanceBHPUsage.deleteMany({});
+  await prisma.maintenanceItem.deleteMany({});
   await prisma.maintenanceLog.deleteMany({});
   await prisma.procurementItem.deleteMany({});
   await prisma.procurementDraft.deleteMany({});
@@ -43,6 +44,7 @@ async function main() {
   // Reset auto-increment counters
   console.log('Resetting auto-increment counters...');
   await prisma.$executeRawUnsafe(`ALTER TABLE maintenance_bhp_usages AUTO_INCREMENT = 1;`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE maintenance_items AUTO_INCREMENT = 1;`);
   await prisma.$executeRawUnsafe(`ALTER TABLE maintenance_logs AUTO_INCREMENT = 1;`);
   await prisma.$executeRawUnsafe(`ALTER TABLE procurement_items AUTO_INCREMENT = 1;`);
   await prisma.$executeRawUnsafe(`ALTER TABLE procurement_drafts AUTO_INCREMENT = 1;`);
@@ -738,32 +740,59 @@ async function main() {
   console.log('Seeding Maintenance Logs...');
   const log1 = await prisma.maintenanceLog.create({
     data: {
-      inventoryId: netPC1.id,
       description: 'Reinstalled Windows 11 OS, updated network drivers, and cleaned dust from chassis.',
-      conditionAfter: 'GOOD',
       performedById: stafLabUser.id,
       maintenanceDate: new Date('2026-05-12T09:00:00Z'),
+      items: {
+        create: [
+          {
+            inventoryId: netPC1.id,
+            conditionAfter: 'GOOD'
+          }
+        ]
+      }
     },
+    include: {
+      items: true
+    }
   });
 
   const log2 = await prisma.maintenanceLog.create({
     data: {
-      inventoryId: ciscoRouter.id,
       description: 'Firmware upgrade, diagnostic tests on LAN ports. Port 3 is physically damaged and non-responsive.',
-      conditionAfter: 'MAINTENANCE',
       performedById: stafLabUser.id,
       maintenanceDate: new Date('2026-05-15T10:30:00Z'),
+      items: {
+        create: [
+          {
+            inventoryId: ciscoRouter.id,
+            conditionAfter: 'MAINTENANCE'
+          }
+        ]
+      }
     },
+    include: {
+      items: true
+    }
   });
 
   const log3 = await prisma.maintenanceLog.create({
     data: {
-      inventoryId: apcUps.id,
       description: 'Battery swelling detected. Chemical leakage present. Declared beyond repair and unsafe to use.',
-      conditionAfter: 'DISPOSED',
       performedById: stafAdminUser.id,
       maintenanceDate: new Date('2026-05-18T14:15:00Z'),
+      items: {
+        create: [
+          {
+            inventoryId: apcUps.id,
+            conditionAfter: 'DISPOSED'
+          }
+        ]
+      }
     },
+    include: {
+      items: true
+    }
   });
 
   const logDescriptions = [
@@ -785,24 +814,39 @@ async function main() {
   ];
 
   const allLogs = [log1, log2, log3];
+  const allItems = [...log1.items, ...log2.items, ...log3.items];
 
   for (let i = 0; i < 50; i++) {
-    const inventory = allInventories[i % allInventories.length];
+    const numItems = (i % 5 === 0) ? 2 : 1;
     const descTemplate = logDescriptions[i % logDescriptions.length];
     const maintenanceDate = new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000);
-    const conditionAfter = i % 10 === 0 ? 'BROKEN' : (i % 15 === 0 ? 'DISPOSED' : 'GOOD');
     const performer = staffLabUsers[i % staffLabUsers.length];
+
+    const itemsData = [];
+    for (let k = 0; k < numItems; k++) {
+      const inventory = allInventories[(i * 2 + k) % allInventories.length];
+      const conditionAfter = (i + k) % 10 === 0 ? 'BROKEN' : ((i + k) % 15 === 0 ? 'DISPOSED' : 'GOOD');
+      itemsData.push({
+        inventoryId: inventory.id,
+        conditionAfter
+      });
+    }
 
     const log = await prisma.maintenanceLog.create({
       data: {
-        inventoryId: inventory.id,
         description: `Routine maintenance: ${descTemplate}`,
-        conditionAfter,
         performedById: performer.id,
-        maintenanceDate
+        maintenanceDate,
+        items: {
+          create: itemsData
+        }
+      },
+      include: {
+        items: true
       }
     });
     allLogs.push(log);
+    allItems.push(...log.items);
   }
 
   console.log(`Seeded core maintenance logs and 50 additional logs.`);
@@ -811,7 +855,7 @@ async function main() {
   console.log('Seeding Maintenance BHP Usages...');
   await prisma.maintenanceBHPUsage.create({
     data: {
-      maintenanceLogId: log1.id,
+      maintenanceItemId: log1.items[0].id,
       bhpId: rj45.id,
       quantity: 4,
     },
@@ -819,20 +863,20 @@ async function main() {
 
   await prisma.maintenanceBHPUsage.create({
     data: {
-      maintenanceLogId: log2.id,
+      maintenanceItemId: log2.items[0].id,
       bhpId: utpCable.id,
       quantity: 1,
     },
   });
 
   for (let i = 0; i < 60; i++) {
-    const log = allLogs[i % allLogs.length];
+    const item = allItems[i % allItems.length];
     const bhp = allBHPs[i % allBHPs.length];
     const quantity = Math.floor(Math.random() * 5) + 1;
 
     await prisma.maintenanceBHPUsage.create({
       data: {
-        maintenanceLogId: log.id,
+        maintenanceItemId: item.id,
         bhpId: bhp.id,
         quantity
       }

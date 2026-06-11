@@ -88,7 +88,7 @@ model Inventory {
   // Replaced items in procurement
   replacements    ProcurementItem[] @relation("ReplacedInventory")
   
-  maintenanceLogs MaintenanceLog[]
+  maintenanceItems MaintenanceItem[]
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -178,37 +178,50 @@ model ProcurementItem {
 }
 
 model MaintenanceLog {
-  id             Int       @id @default(autoincrement())
-  inventoryId    Int
-  inventory      Inventory @relation(fields: [inventoryId], references: [id])
+  id              Int               @id @default(autoincrement())
+  maintenanceDate DateTime          @default(now())
+  description     String            @db.Text
+  performedById   Int
+  performedBy     Users             @relation("MaintenancePerformer", fields: [performedById], references: [id])
   
-  maintenanceDate DateTime @default(now())
-  description    String    @db.Text
-  conditionAfter Condition
-  
-  performedById  Int
-  performedBy    Users     @relation("MaintenancePerformer", fields: [performedById], references: [id])
+  items           MaintenanceItem[]
 
-  bhpUsages      MaintenanceBHPUsage[]
-
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@map("maintenance_logs")
 }
 
-model MaintenanceBHPUsage {
-  id               Int            @id @default(autoincrement())
+model MaintenanceItem {
+  id               Int                   @id @default(autoincrement())
   maintenanceLogId Int
-  maintenanceLog   MaintenanceLog @relation(fields: [maintenanceLogId], references: [id])
+  maintenanceLog   MaintenanceLog        @relation(fields: [maintenanceLogId], references: [id], onDelete: Cascade)
   
-  bhpId            Int
-  bhp              BHP            @relation(fields: [bhpId], references: [id])
+  inventoryId      Int
+  inventory        Inventory             @relation(fields: [inventoryId], references: [id])
   
-  quantity         Int
+  conditionAfter   Condition
+  
+  bhpUsages        MaintenanceBHPUsage[]
 
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@map("maintenance_items")
+}
+
+model MaintenanceBHPUsage {
+  id                Int             @id @default(autoincrement())
+  maintenanceItemId Int
+  maintenanceItem   MaintenanceItem @relation(fields: [maintenanceItemId], references: [id], onDelete: Cascade)
+  
+  bhpId             Int
+  bhp               BHP             @relation(fields: [bhpId], references: [id])
+  
+  quantity          Int
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@map("maintenance_bhp_usages")
 }

@@ -16,7 +16,13 @@ const roomMaintenanceSchema = z.object({
     z.object({
       id: z.coerce.number().int().positive(),
       checked: z.string().optional(),
-      conditionAfter: z.enum(['GOOD', 'MAINTENANCE', 'BROKEN', 'DISPOSED']).optional()
+      conditionAfter: z.enum(['GOOD', 'MAINTENANCE', 'BROKEN', 'DISPOSED']).optional(),
+      bhpUsages: z.array(
+        z.object({
+          bhpId: z.coerce.number().int().positive(),
+          quantity: z.coerce.number().int().nonnegative()
+        })
+      ).optional()
     })
   ).optional()
 });
@@ -39,13 +45,33 @@ const MaintenanceController = {
         ...(search.trim() !== '' ? {
           OR: [
             { description: { contains: search } },
-            { inventory: { name: { contains: search } } },
-            { inventory: { labelNumber: { contains: search } } }
+            {
+              items: {
+                some: {
+                  OR: [
+                    { inventory: { name: { contains: search } } },
+                    { inventory: { labelNumber: { contains: search } } }
+                  ]
+                }
+              }
+            }
           ]
         } : {}),
-        ...(inventoryId ? { inventoryId } : {}),
+        ...(inventoryId ? {
+          items: {
+            some: {
+              inventoryId
+            }
+          }
+        } : {}),
         ...(performedById ? { performedById } : {}),
-        ...(condition ? { conditionAfter: condition } : {}),
+        ...(condition ? {
+          items: {
+            some: {
+              conditionAfter: condition
+            }
+          }
+        } : {}),
         ...(year ? {
           maintenanceDate: {
             gte: new Date(`${year}-01-01T00:00:00.000Z`),
@@ -99,11 +125,15 @@ const MaintenanceController = {
         prisma.maintenanceLog.findMany({
           where,
           include: {
-            inventory: { select: { id: true, name: true, labelNumber: true } },
             performedBy: { select: { id: true, name: true, email: true } },
-            bhpUsages: {
+            items: {
               include: {
-                bhp: true
+                inventory: { select: { id: true, name: true, labelNumber: true } },
+                bhpUsages: {
+                  include: {
+                    bhp: true
+                  }
+                }
               }
             }
           },
@@ -230,37 +260,30 @@ const MaintenanceController = {
         return res.redirect('/maintenance/new?error=Silakan pilih setidaknya satu aset untuk pemeliharaan');
       }
 
-      const { bhpUsages } = req.body;
-      let parsedBhpUsages = [];
-      if (Array.isArray(bhpUsages)) {
-        parsedBhpUsages = bhpUsages.map(usage => ({
-          bhpId: parseInt(usage.bhpId),
-          quantity: parseInt(usage.quantity)
-        })).filter(u => !isNaN(u.bhpId) && !isNaN(u.quantity) && u.quantity > 0);
-      } else if (bhpUsages && typeof bhpUsages === 'object') {
-        for (const [key, val] of Object.entries(bhpUsages)) {
-          const bhpId = parseInt(key);
-          const quantity = parseInt(val);
-          if (!isNaN(bhpId) && !isNaN(quantity) && quantity > 0) {
-            parsedBhpUsages.push({ bhpId, quantity });
-          }
-        }
-      }
+      // Map submitted assets and their specific BHP usages to the model format
+      const items = submittedAssets.map(asset => {
+        const bhpUsages = (asset.bhpUsages || [])
+          .map(usage => ({
+            bhpId: parseInt(usage.bhpId),
+            quantity: parseInt(usage.quantity)
+          }))
+          .filter(u => !isNaN(u.bhpId) && !isNaN(u.quantity) && u.quantity > 0);
 
-      // Loop through all checked assets and create logs
-      for (let i = 0; i < submittedAssets.length; i++) {
-        const asset = submittedAssets[i];
-        await MaintenanceModel.createLog(
-          {
-            inventoryId: asset.id,
-            description,
-            conditionAfter: asset.conditionAfter || 'GOOD',
-            performedById,
-            maintenanceDate: maintenanceDate ? new Date(maintenanceDate) : undefined
-          },
-          i === 0 ? parsedBhpUsages : []
-        );
-      }
+        return {
+          inventoryId: asset.id,
+          conditionAfter: asset.conditionAfter || 'GOOD',
+          bhpUsages
+        };
+      });
+
+      await MaintenanceModel.createLog(
+        {
+          description,
+          performedById,
+          maintenanceDate: maintenanceDate ? new Date(maintenanceDate) : undefined
+        },
+        items
+      );
 
       res.redirect('/maintenance');
     } catch (error) {
