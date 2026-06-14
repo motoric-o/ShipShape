@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { z } = require('zod');
+const { logActivity } = require('../utils/activity-logger');
 
 const roomSchema = z.object({
   name: z.string().trim().min(1, 'Nama ruangan wajib diisi').max(100, 'Nama ruangan maksimal 100 karakter'),
@@ -119,9 +120,10 @@ const RoomController = {
         return res.redirect('/rooms/new?error=Nama ruangan sudah terdaftar');
       }
 
-      await prisma.room.create({
+      const newRoom = await prisma.room.create({
         data: { name, description }
       });
+      await logActivity(req.session.userId, 'Room', newRoom.id, 'CREATE', null, newRoom);
       res.redirect('/rooms');
     } catch (error) {
       console.error('Error creating room:', error);
@@ -167,10 +169,12 @@ const RoomController = {
         return res.redirect(`/rooms/${id}/edit?error=Nama ruangan sudah terdaftar`);
       }
 
-      await prisma.room.update({
+      const oldRoom = await prisma.room.findUnique({ where: { id: parseInt(id) } });
+      const updatedRoom = await prisma.room.update({
         where: { id: parseInt(id) },
         data: { name, description }
       });
+      await logActivity(req.session.userId, 'Room', id, 'UPDATE', oldRoom, updatedRoom);
       res.redirect('/rooms');
     } catch (error) {
       console.error('Error updating room:', error);
@@ -180,7 +184,10 @@ const RoomController = {
 
   async destroy(req, res, next) {
     try {
-      await prisma.room.delete({ where: { id: parseInt(req.params.id) } });
+      const id = parseInt(req.params.id);
+      const oldRoom = await prisma.room.findUnique({ where: { id } });
+      await prisma.room.delete({ where: { id } });
+      await logActivity(req.session.userId, 'Room', id, 'DELETE', oldRoom, null);
       res.redirect('/rooms');
     } catch (error) {
       console.error(error);

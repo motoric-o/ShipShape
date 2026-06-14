@@ -12,6 +12,7 @@ const InventoryController = require('../controllers/inventory.controller');
 const BHPController = require('../controllers/bhp.controller');
 const ProcurementController = require('../controllers/procurement.controller');
 const MaintenanceController = require('../controllers/maintenance.controller');
+const ActivityLogController = require('../controllers/activity-log.controller');
 
 // Ensure public/uploads directory exists
 const uploadsDir = path.join(__dirname, '../../public/uploads');
@@ -88,6 +89,11 @@ router.post('/users', requireAuth, requireRole(['ADMIN']), UserController.store)
 router.get('/users/:id/edit', requireAuth, requireRole(['ADMIN']), UserController.edit);
 router.put('/users/:id', requireAuth, requireRole(['ADMIN']), UserController.update);
 router.delete('/users/:id', requireAuth, requireRole(['ADMIN']), UserController.destroy);
+
+// --- Activity Log Routes ---
+router.get('/admin/activity-log', requireAuth, requireRole(['ADMIN']), ActivityLogController.index);
+router.get('/admin/activity-log/:id', requireAuth, requireRole(['ADMIN']), ActivityLogController.show);
+router.post('/admin/activity-log/:id/rollback', requireAuth, requireRole(['ADMIN']), ActivityLogController.rollback);
 
 // --- Room Routes ---
 router.get('/rooms', requireAuth, requireRole(['ADMIN']), RoomController.index);

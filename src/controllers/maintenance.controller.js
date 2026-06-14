@@ -1,6 +1,7 @@
 const MaintenanceModel = require('../models/maintenance.model');
 const prisma = require('../config/db');
 const { z } = require('zod');
+const { logActivity } = require('../utils/activity-logger');
 
 const maintenanceSchema = z.object({
   inventoryId: z.coerce.number().int().positive('Inventory ID is required'),
@@ -276,7 +277,7 @@ const MaintenanceController = {
         };
       });
 
-      await MaintenanceModel.createLog(
+      const newLog = await MaintenanceModel.createLog(
         {
           description,
           performedById,
@@ -285,6 +286,7 @@ const MaintenanceController = {
         items
       );
 
+      await logActivity(req.session.userId, 'MaintenanceLog', newLog.id, 'CREATE', null, newLog);
       res.redirect('/maintenance');
     } catch (error) {
       console.error('Error creating maintenance log:', error);
@@ -294,8 +296,10 @@ const MaintenanceController = {
 
   async destroy(req, res, next) {
     try {
-      const { id } = req.params;
+      const id = parseInt(req.params.id);
+      const oldLog = await MaintenanceModel.findLogById(id);
       await MaintenanceModel.deleteLog(id);
+      await logActivity(req.session.userId, 'MaintenanceLog', id, 'DELETE', oldLog, null);
       res.redirect('/maintenance');
     } catch (error) {
       console.error(error);

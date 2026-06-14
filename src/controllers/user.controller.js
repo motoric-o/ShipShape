@@ -1,6 +1,7 @@
 const prisma = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { z } = require('zod');
+const { logActivity } = require('../utils/activity-logger');
 
 const createUserSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
@@ -129,7 +130,7 @@ const UserController = {
         return res.redirect('/users/new?error=Email address is already in use');
       }
 
-      await prisma.users.create({
+      const newUser = await prisma.users.create({
         data: {
           name,
           email: email.toLowerCase(),
@@ -138,6 +139,7 @@ const UserController = {
           isActive: isActive === 'on' || isActive === 'true' || isActive === true
         }
       });
+      await logActivity(req.session.userId, 'Users', newUser.id, 'CREATE', null, newUser);
       res.redirect('/users');
     } catch (error) {
       console.error('Error creating user:', error);
@@ -194,10 +196,12 @@ const UserController = {
       if (password && password.trim() !== '') {
         updateData.password = bcrypt.hashSync(password, 10);
       }
-      await prisma.users.update({
+      const oldUser = await prisma.users.findUnique({ where: { id: parseInt(id) } });
+      const updatedUser = await prisma.users.update({
         where: { id: parseInt(id) },
         data: updateData
       });
+      await logActivity(req.session.userId, 'Users', id, 'UPDATE', oldUser, updatedUser);
       res.redirect('/users');
     } catch (error) {
       console.error('Error updating user:', error);
@@ -207,13 +211,16 @@ const UserController = {
 
   async destroy(req, res, next) {
     try {
-      await prisma.users.update({
-        where: { id: parseInt(req.params.id) },
+      const id = parseInt(req.params.id);
+      const oldUser = await prisma.users.findUnique({ where: { id } });
+      const updatedUser = await prisma.users.update({
+        where: { id },
         data: {
           deletedAt: new Date(),
           isActive: false
         }
       });
+      await logActivity(req.session.userId, 'Users', id, 'DELETE', oldUser, updatedUser);
       res.redirect('/users');
     } catch (error) {
       console.error(error);

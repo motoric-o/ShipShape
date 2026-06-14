@@ -1,6 +1,7 @@
 const ProcurementModel = require('../models/procurement.model');
 const prisma = require('../config/db');
 const { z } = require('zod');
+const { logActivity } = require('../utils/activity-logger');
 
 const draftSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
@@ -220,6 +221,7 @@ const ProcurementController = {
         year,
         createdById: parseInt(createdById)
       });
+      await logActivity(req.session.userId, 'ProcurementDraft', newDraft.id, 'CREATE', null, newDraft);
       res.redirect(`/procurements/${newDraft.id}`);
     } catch (error) {
       console.error('Error creating draft:', error);
@@ -269,6 +271,7 @@ const ProcurementController = {
         return res.redirect(`/procurements/${id}?error=Cannot modify a draft that is under review or approved`);
       }
 
+      const { title, year } = result.data;
       const updatedData = {};
       if (title !== undefined) {
         if (typeof title !== 'string' || title.trim() === '') {
@@ -284,7 +287,10 @@ const ProcurementController = {
         updatedData.year = parsedYear;
       }
 
+      const oldDraft = await ProcurementModel.findDraftById(id);
       await ProcurementModel.updateDraft(id, result.data);
+      const updatedDraft = await ProcurementModel.findDraftById(id);
+      await logActivity(req.session.userId, 'ProcurementDraft', id, 'UPDATE', oldDraft, updatedDraft);
       res.redirect(`/procurements/${id}`);
     } catch (error) {
       console.error('Error updating draft:', error);
@@ -311,7 +317,9 @@ const ProcurementController = {
         return res.redirect(`/procurements/${id}?error=Cannot delete a draft that is under review or approved`);
       }
 
+      const oldDraft = await ProcurementModel.findDraftById(id);
       await ProcurementModel.deleteDraft(id);
+      await logActivity(req.session.userId, 'ProcurementDraft', id, 'DELETE', oldDraft, null);
       res.redirect('/procurements');
     } catch (error) {
       console.error(error);
@@ -486,6 +494,7 @@ const ProcurementController = {
       }
 
       const updatedDraft = await ProcurementModel.updateDraftStatus(id, finalStatus, reviewedById);
+      await logActivity(req.session.userId, 'ProcurementDraft', id, 'UPDATE', draft, updatedDraft);
       if (isApi) {
         return res.json({ message: `Draft status updated to ${finalStatus}`, draft: updatedDraft });
       }
@@ -607,6 +616,7 @@ const ProcurementController = {
       }
 
       const newItem = await ProcurementModel.addItemToDraft(draftId, itemData);
+      await logActivity(req.session.userId, 'ProcurementItem', newItem.id, 'CREATE', null, newItem);
       if (isApi) {
         return res.status(201).json({ message: 'Procurement item added successfully', item: newItem });
       }
@@ -688,6 +698,7 @@ const ProcurementController = {
       }
 
       const updatedItem = await ProcurementModel.updateItem(id, updatedData);
+      await logActivity(req.session.userId, 'ProcurementItem', id, 'UPDATE', item, updatedItem);
       if (isApi) {
         return res.json({ message: 'Procurement item updated successfully', item: updatedItem });
       }
@@ -756,6 +767,7 @@ const ProcurementController = {
       const isNewlyReceived = item.receiveDate === null && finalReceiveDate !== null;
 
       const updatedItem = await ProcurementModel.updateItemStatus(id, status, finalReceiveDate);
+      await logActivity(req.session.userId, 'ProcurementItem', id, 'UPDATE', item, updatedItem);
 
       // Automatic asset registration if newly received and is of type INVENTORY
       if (isNewlyReceived && item.type === 'INVENTORY') {
@@ -827,6 +839,7 @@ const ProcurementController = {
       }
 
       await ProcurementModel.deleteItem(id);
+      await logActivity(req.session.userId, 'ProcurementItem', id, 'DELETE', item, null);
       if (isApi) {
         return res.json({ message: 'Procurement item deleted successfully' });
       }

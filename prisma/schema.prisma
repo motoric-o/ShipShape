@@ -45,6 +45,7 @@ model Users {
   createdDrafts  ProcurementDraft[] @relation("DraftCreator")
   reviewedDrafts ProcurementDraft[] @relation("DraftReviewer")
   maintenances   MaintenanceLog[]   @relation("MaintenancePerformer")
+  activityLogs   ActivityLog[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -225,3 +226,18 @@ model MaintenanceBHPUsage {
 
   @@map("maintenance_bhp_usages")
 }
+
+model ActivityLog {
+  id            Int      @id @default(autoincrement())
+  entityType    String   // 'Room', 'Inventory', 'BHP', 'ProcurementDraft', 'ProcurementItem', 'MaintenanceLog', 'Users'
+  entityId      Int
+  action        String   // 'CREATE', 'UPDATE', 'DELETE', 'ROLLBACK'
+  previousState String?  @db.Text // JSON string
+  currentState  String?  @db.Text // JSON string
+  userId        Int
+  user          Users    @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@map("activity_logs")
+}
+

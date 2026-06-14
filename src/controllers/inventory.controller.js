@@ -1,6 +1,7 @@
 const InventoryModel = require('../models/inventory.model');
 const prisma = require('../config/db');
 const { z } = require('zod');
+const { logActivity } = require('../utils/activity-logger');
 
 const inventorySchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
@@ -209,13 +210,14 @@ const InventoryController = {
         qrCodePhotoPath = `/uploads/${req.file.filename}`;
       }
 
-      await InventoryModel.create({
+      const newInventory = await InventoryModel.create({
         name,
         labelNumber,
         qrCodePhotoPath,
         condition,
         roomId
       });
+      await logActivity(req.session.userId, 'Inventory', newInventory.id, 'CREATE', null, newInventory);
       res.redirect('/inventory');
     } catch (error) {
       console.error('Error creating inventory:', error);
@@ -305,7 +307,8 @@ const InventoryController = {
         updateData.labelNumber = await generateLabelNumber(name || originalItem.name, roomId);
       }
 
-      await InventoryModel.update(id, updateData);
+      const updatedItem = await InventoryModel.update(id, updateData);
+      await logActivity(req.session.userId, 'Inventory', id, 'UPDATE', originalItem, updatedItem);
       res.redirect('/inventory');
     } catch (error) {
       console.error('Error updating inventory:', error);
@@ -316,7 +319,9 @@ const InventoryController = {
   async destroy(req, res, next) {
     try {
       const { id } = req.params;
+      const originalItem = await InventoryModel.findById(id);
       await InventoryModel.delete(id);
+      await logActivity(req.session.userId, 'Inventory', id, 'DELETE', originalItem, null);
       res.redirect('/inventory');
     } catch (error) {
       console.error(error);

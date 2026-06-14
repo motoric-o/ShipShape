@@ -1,6 +1,7 @@
 const BHPModel = require('../models/bhp.model');
 const prisma = require('../config/db');
 const { z } = require('zod');
+const { logActivity } = require('../utils/activity-logger');
 
 const bhpSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
@@ -110,12 +111,13 @@ const BHPController = {
         return res.redirect(`/bhp/new?error=${encodeURIComponent(errorMsg)}`);
       }
       const { name, stock, unit, roomId } = result.data;
-      await BHPModel.create({
+      const newBhp = await BHPModel.create({
         name,
         stock,
         unit,
         roomId
       });
+      await logActivity(req.session.userId, 'BHP', newBhp.id, 'CREATE', null, newBhp);
       res.redirect('/bhp');
     } catch (error) {
       console.error('Error creating BHP:', error);
@@ -150,7 +152,9 @@ const BHPController = {
         const errorMsg = result.error.errors.map(e => e.message).join(', ');
         return res.redirect(`/bhp/${id}/edit?error=${encodeURIComponent(errorMsg)}`);
       }
-      await BHPModel.update(id, result.data);
+      const originalBhp = await BHPModel.findById(id);
+      const updatedBhp = await BHPModel.update(id, result.data);
+      await logActivity(req.session.userId, 'BHP', id, 'UPDATE', originalBhp, updatedBhp);
       res.redirect('/bhp');
     } catch (error) {
       console.error('Error updating BHP:', error);
@@ -161,7 +165,9 @@ const BHPController = {
   async destroy(req, res, next) {
     try {
       const { id } = req.params;
+      const originalBhp = await BHPModel.findById(id);
       await BHPModel.delete(id);
+      await logActivity(req.session.userId, 'BHP', id, 'DELETE', originalBhp, null);
       res.redirect('/bhp');
     } catch (error) {
       console.error(error);
@@ -244,6 +250,7 @@ const BHPController = {
       }
 
       const updatedBHP = await BHPModel.setStock(id, parsedStock);
+      await logActivity(req.session.userId, 'BHP', id, 'UPDATE', bhp, updatedBHP);
       if (isApi) {
         return res.json({ message: 'BHP stock updated successfully', bhp: updatedBHP });
       }
