@@ -138,6 +138,39 @@ const DashboardController = {
       console.error('Staf Lab Dashboard Error:', error);
       next(error);
     }
+  },
+
+  async stafAdminQRScanner(req, res, next) {
+    try {
+      res.render('pages/dashboards/staf_admin_qr_scanner', {
+        sessionUser: req.session
+      });
+    } catch (error) {
+      console.error('Staf Admin QR Scanner page error:', error);
+      next(error);
+    }
+  },
+
+  async searchQRLabel(req, res, next) {
+    try {
+      const { label } = req.query;
+      if (!label) {
+        return res.status(400).json({ error: 'Label parameter is required' });
+      }
+
+      const item = await prisma.inventory.findUnique({
+        where: { labelNumber: label }
+      });
+
+      if (item) {
+        return res.json({ found: true, id: item.id, name: item.name });
+      }
+
+      return res.json({ found: false });
+    } catch (error) {
+      console.error('QR search error:', error);
+      next(error);
+    }
   }
 };
 
