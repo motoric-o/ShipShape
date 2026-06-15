@@ -78,6 +78,8 @@ router.get('/', (req, res) => {
 router.get('/admin', requireAuth, requireRole(['ADMIN']), DashboardController.admin);
 router.get('/kaprodi', requireAuth, requireRole(['KAPRODI']), DashboardController.kaprodi);
 router.get('/staf-admin', requireAuth, requireRole(['STAF_ADMIN']), DashboardController.stafAdmin);
+router.get('/staf-admin/qr-scanner', requireAuth, requireRole(['STAF_ADMIN']), DashboardController.stafAdminQRScanner);
+router.get('/staf-admin/qr-scanner/search', requireAuth, requireRole(['STAF_ADMIN']), DashboardController.searchQRLabel);
 router.get('/kalab', requireAuth, requireRole(['KALAB']), DashboardController.kalab);
 router.get('/staf-lab', requireAuth, requireRole(['STAF_LAB']), DashboardController.stafLab);
 
