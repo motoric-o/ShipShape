@@ -140,13 +140,13 @@ const DashboardController = {
     }
   },
 
-  async stafAdminQRScanner(req, res, next) {
+  async qrScanner(req, res, next) {
     try {
-      res.render('pages/dashboards/staf_admin_qr_scanner', {
+      res.render('pages/dashboards/qr_scanner', {
         sessionUser: req.session
       });
     } catch (error) {
-      console.error('Staf Admin QR Scanner page error:', error);
+      console.error('QR Scanner page error:', error);
       next(error);
     }
   },
